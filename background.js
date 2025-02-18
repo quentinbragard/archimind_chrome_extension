@@ -43,8 +43,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
 
       // Destructure message data sent from the content script
-      const { messageType, message, rank, messageId, providerChatId } = request.data;
-      console.log('Message data:', { messageType, message, rank, messageId, providerChatId });
+      const { messageType, message, rank, messageId, providerChatId, model } = request.data;
+      console.log('Message data:', { messageType, message, rank, messageId, providerChatId, model });
 
       // Check if the message ID already exists
       const checkEndpoint = `${SUPABASE_URL}/rest/v1/messages?message_id=eq.${messageId}`;
@@ -81,6 +81,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         rank: rank,
         message_id: messageId,
         provider_chat_id: providerChatId,
+        model: model,
         created_at: new Date().toISOString(),
       };
       console.log('Payload prepared for Supabase:', payload);

@@ -13,6 +13,24 @@ let chatHistoryData = {
   globalProviderChatId: null,
 };
 
+// Function to extract the model information
+function getModelInfo() {
+  console.log("GETTING MODEL INFO");
+  // Query the button element using its data-testid attribute
+  const modelButton = document.querySelector('button[data-testid="model-switcher-dropdown-button"]');
+  console.log("MODEL BUTTON", modelButton); 
+
+  if (modelButton) {
+    // Extract the inner text that contains the model information
+    const modelText = modelButton.innerText;
+    console.log("MODEL TEXT", modelText);
+
+    return modelText;
+  }
+
+  return null;
+}
+
 // Function to send the message data to the background script for Supabase handling
 function sendMessageToSupabase({ type, message, rank, messageId }) {
   return new Promise((resolve, reject) => {
@@ -20,6 +38,10 @@ function sendMessageToSupabase({ type, message, rank, messageId }) {
       console.warn(`Skipping empty ${type} message for messageId: ${messageId}`);
       return resolve();
     }
+
+    // Extract the model information
+    const model = getModelInfo();
+    console.log("Model used:", model);
 
     // Update chatHistoryData via the external check function
     console.log("CHECKING CHAT HISTORY");
@@ -42,7 +64,8 @@ function sendMessageToSupabase({ type, message, rank, messageId }) {
         message,
         rank: correctedRank,
         messageId,
-        providerChatId: chatHistoryData.globalProviderChatId
+        providerChatId: chatHistoryData.globalProviderChatId,
+        model: model // Include the model information
       }
     }, (response) => {
       if (response && response.success) {
