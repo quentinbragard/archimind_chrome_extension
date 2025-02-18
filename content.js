@@ -9,69 +9,136 @@ function getTurnNumber(article) {
 }
 
 // Process new articles that have been added to the DOM
-function processNewArticles() {
-  console.log('Hello World'); // Log message when processing new articles
-  console.log('Processing new articles...');
-  // Select all articles that represent conversation turns
+async function processNewArticles() {
   const articles = document.querySelectorAll('article[data-testid^="conversation-turn-"]');
 
-  articles.forEach((article) => {
+  for (const article of articles) {
     const turnNumber = getTurnNumber(article);
     console.log('Found article with turn number:', turnNumber);
 
     // Only process articles that haven't been processed yet
     if (turnNumber && turnNumber > lastProcessedTurn) {
-      // Find the nested div containing the message text for user messages
-      const userMessageDiv = article.querySelector('div[data-message-author-role="user"]');
-      // Find the nested div containing the message text for assistant messages
-      const assistantMessageDiv = article.querySelector('div[data-message-author-role="assistant"]');
+      console.log("turn number", turnNumber);
+      console.log("article", article);
 
+      const userMessageDiv = article.querySelector('div[data-message-author-role="user"]');
       if (userMessageDiv) {
-        console.log('User message div found');  
         const messageText = userMessageDiv.innerText.trim();
         const messageId = userMessageDiv.getAttribute('data-message-id');
-        console.log('User message ID:', messageId); 
+        console.log('User message ID:', messageId);
         console.log(`User message (turn ${turnNumber}):`, messageText);
-        // Save the user message to Supabase
-        sendMessageToSupabase({ type: 'user', message: messageText, rank: turnNumber, messageId });
-      }
 
-      if (assistantMessageDiv) {
-        const messageText = assistantMessageDiv.innerText.trim();
-        const messageId = assistantMessageDiv.getAttribute('data-message-id');
-        console.log(`Assistant message (turn ${turnNumber}):`, messageText);
-        // Save the assistant message to Supabase
-        sendMessageToSupabase({ type: 'assistant', message: messageText, rank: turnNumber, messageId });
-      }
+        // Wait for the user message to be saved before proceeding
+        await sendMessageToSupabase({ type: 'user', message: messageText, rank: turnNumber, messageId });
 
+        // Use a MutationObserver to wait for the removal of the stop streaming button
+        waitForCompleteMessage(turnNumber + 1).then((textElement) => {
+          if (textElement) {
+            const text = textElement.innerText.trim();
+            const messageId = textElement.getAttribute('data-message-id');
+            console.log(`Assistant message (turn ${turnNumber + 1}) - streaming ended. Storing message:`, text);
+            sendMessageToSupabase({ type: 'assistant', message: text, rank: turnNumber + 1, messageId });
+          } else {
+            console.warn(`No text element found for assistant message (turn ${turnNumber + 1})`);
+          }
+        });
+      }
       // Update the last processed turn
       lastProcessedTurn = Math.max(lastProcessedTurn, turnNumber);
       console.log('Updated last processed turn to:', lastProcessedTurn);
     }
+  }
+}
+
+// Helper function: Wait until the stream has ended and the element's innerText is non-empty.
+function waitForCompleteMessage(turnNumber, timeout = 120000) {
+  console.log("WE TRY TO PROCESS ASSISTANT ANSWER");
+  return new Promise((resolve) => {
+    const observer = new MutationObserver(() => {
+      setTimeout(() => {
+        const stopButton = document.querySelector('button[data-testid="stop-button"]');
+
+        if (!stopButton) {
+          console.log("========STOP BUTTON NOT FOUND=========");
+          const newArticle = document.querySelector(`article[data-testid^="conversation-turn-${turnNumber}"]`);
+          console.log('New article:', newArticle);
+          if (newArticle) {
+            const textElement = newArticle.querySelector('div[data-message-author-role="assistant"]');
+            if (textElement) {
+              const text = textElement.innerText.trim();
+              console.log('Text element:', textElement, 'Text:', text);
+              observer.disconnect();
+              resolve(textElement);
+            } else {
+              console.warn('No assistant message div found in new article');
+              resolve(null);
+            }
+          } else {
+            console.warn('No new article found for turn number:', turnNumber);
+            resolve(null);
+          }
+        }
+      }, 1000);
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(null);
+    }, timeout);
   });
 }
 
 // Function to send the message data to the background script for Supabase handling
 function sendMessageToSupabase({ type, message, rank, messageId }) {
-  console.log(`Sending ${type} message to background script:`, message);
-  chrome.runtime.sendMessage({ type: 'SAVE_MESSAGE', data: { messageType: type, message, rank, messageId } }, (response) => {
-    if (response && response.success) {
-      console.log(`Successfully saved ${type} message.`);
-    } else {
-      console.error(`Failed to save ${type} message:`, response?.error);
+  return new Promise((resolve, reject) => {
+    if (!message) {
+      console.warn(`Skipping empty ${type} message for messageId: ${messageId}`);
+      return resolve();
     }
+    console.log(`Sending ${type} message:`, message);
+    const correctedRank = rank - 1;
+    chrome.runtime.sendMessage({
+      type: 'SAVE_MESSAGE',
+      data: {
+        messageType: type,
+        message,
+        rank: correctedRank,
+        messageId
+      }
+    }, (response) => {
+      if (response && response.success) {
+        console.log(`Successfully saved ${type} message.`);
+        resolve();
+      } else {
+        console.error(`Failed to save ${type} message:`, response?.error);
+        reject(response?.error);
+      }
+    });
   });
 }
 
-// Set up a MutationObserver to watch for new articles in the DOM
+// Existing MutationObserver setup
 const observer = new MutationObserver((mutationsList) => {
-  console.log('Mutation observed, processing new articles...');
-  processNewArticles();
+  mutationsList.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.matches('article[data-testid^="conversation-turn-"]')
+      ) {
+        const userMessage = node.querySelector('div[data-message-author-role="user"]');
+        const assistantMessage = node.querySelector('div[data-message-author-role="assistant"]');
+        const turnNumber = getTurnNumber(node);
+
+        if (userMessage || (assistantMessage && turnNumber === 3)) {
+          console.log('Relevant article detected, processing...');
+          processNewArticles();
+        }
+      }
+    });
+  });
 });
 
 // Observe the document body for added nodes in the subtree
 observer.observe(document.body, { childList: true, subtree: true });
-
-// Process any articles already in the DOM when the script loads
-console.log('Initial processing of articles in the DOM...');
-processNewArticles();

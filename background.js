@@ -21,9 +21,13 @@ const errorCodeMap = {
   // Add more mappings as needed
 };
 
+// Open welcome page on installation
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.tabs.create({ url: 'welcome.html' });
+});
+
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Hello World'); // Log message when a message is received
   console.log('Received message from content script:', request);
 
   if (request.type === 'SAVE_MESSAGE') {
