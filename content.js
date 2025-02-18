@@ -1,6 +1,12 @@
 // Keeps track of the highest conversation-turn number processed so far
 let lastProcessedTurn = 0;
 
+// Global variable to store the saved chat name to avoid duplicate saves.
+let savedChatName = null;
+
+// Global variable to store the provider chat ID
+let globalProviderChatId = null;
+
 // Utility to extract the numeric part from data-testid attribute
 function getTurnNumber(article) {
   const dataTestId = article.getAttribute('data-testid');
@@ -97,6 +103,17 @@ function sendMessageToSupabase({ type, message, rank, messageId }) {
       console.warn(`Skipping empty ${type} message for messageId: ${messageId}`);
       return resolve();
     }
+
+    // Run checkChatHistory to ensure provider_chat_id is set
+    checkChatHistory();
+
+    // Wait until the provider_chat_id is available
+    if (!globalProviderChatId) {
+      console.warn(`Waiting for provider_chat_id before sending ${type} message.`);
+      setTimeout(() => sendMessageToSupabase({ type, message, rank, messageId }).then(resolve).catch(reject), 2000);
+      return;
+    }
+
     console.log(`Sending ${type} message:`, message);
     const correctedRank = rank - 1;
     chrome.runtime.sendMessage({
@@ -105,7 +122,8 @@ function sendMessageToSupabase({ type, message, rank, messageId }) {
         messageType: type,
         message,
         rank: correctedRank,
-        messageId
+        messageId,
+        providerChatId: globalProviderChatId // Include provider_chat_id
       }
     }, (response) => {
       if (response && response.success) {
@@ -121,6 +139,7 @@ function sendMessageToSupabase({ type, message, rank, messageId }) {
 
 // Existing MutationObserver setup
 const observer = new MutationObserver((mutationsList) => {
+  console.log("MUTATION OBSERVER"); 
   mutationsList.forEach((mutation) => {
     mutation.addedNodes.forEach((node) => {
       if (
@@ -142,3 +161,66 @@ const observer = new MutationObserver((mutationsList) => {
 
 // Observe the document body for added nodes in the subtree
 observer.observe(document.body, { childList: true, subtree: true });
+
+// Function to check the chat history list for an updated chat name.
+function checkChatHistory() {
+  // Look for the first history item that uses the tertiary background color.
+  const newChatItem = document.querySelector('li[data-testid="history-item-0"] > div[style*="var(--sidebar-surface-tertiary)"]');
+  if (!newChatItem) {
+    console.log("No new chat item with tertiary background found, waiting...");
+    return; // If not found, we simply wait.
+  }
+
+  // Get the chat title from this element.
+  const chatTitle = newChatItem.innerText.trim();
+  console.log("Detected chat title:", chatTitle);
+
+  // If we've already saved this chat name, do not trigger again.
+  if (savedChatName === chatTitle) {
+    return;
+  }
+  
+
+  // Locate the list item so we can extract the anchor with the href.
+  const liElement = newChatItem.closest('li');
+  if (!liElement) {
+    console.warn("Could not find parent li element for new chat item");
+    return;
+  }
+
+  // Extract the provider chat id from the href on the <a> element (assumed format: /c/{chat_id}).
+  const anchor = liElement.querySelector('a[href]');
+  if (anchor) {
+    const href = anchor.getAttribute('href');
+    const match = href.match(/\/c\/([^\/\?]+)/);
+    if (match) {
+      globalProviderChatId = match[1];
+    }
+  }
+
+  // Update our global variable so we don't save the same chat repeatedly.
+  savedChatName = chatTitle;
+
+  // Get the user id from chrome storage and send a SAVE_CHAT message.
+  chrome.storage.sync.get('supabaseUserId', (storageData) => {
+    const userId = storageData.supabaseUserId || 'default_user';
+    console.log("userId", userId);  
+    console.log("providerChatId", globalProviderChatId);
+    console.log("chatTitle", chatTitle);
+    chrome.runtime.sendMessage({
+      type: 'SAVE_CHAT',
+      data: {
+        user_id: userId,
+        provider_chat_id: globalProviderChatId,
+        title: chatTitle,
+        provider_name: 'chatGPT'
+      }
+    }, (response) => {
+      if (response && response.success) {
+        console.log("Chat saved successfully:", chatTitle);
+      } else {
+        console.error("Failed to save chat:", response?.error);
+      }
+    });
+  });
+}

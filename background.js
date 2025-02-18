@@ -43,8 +43,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
 
       // Destructure message data sent from the content script
-      const { messageType, message, rank, messageId } = request.data;
-      console.log('Message data:', { messageType, message, rank, messageId });
+      const { messageType, message, rank, messageId, providerChatId } = request.data;
+      console.log('Message data:', { messageType, message, rank, messageId, providerChatId });
 
       // Check if the message ID already exists
       const checkEndpoint = `${SUPABASE_URL}/rest/v1/messages?message_id=eq.${messageId}`;
@@ -80,6 +80,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         role: messageType,
         rank: rank,
         message_id: messageId,
+        provider_chat_id: providerChatId,
         created_at: new Date().toISOString(),
       };
       console.log('Payload prepared for Supabase:', payload);
@@ -108,6 +109,98 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       }
     });
+
+    // Return true to signal that we want to send an asynchronous response.
+    return true;
+  } else if (request.type === 'SAVE_CHAT') {
+    const { user_id, provider_chat_id, title, provider_name } = request.data;
+    console.log('Chat data:', { user_id, provider_chat_id, title, provider_name });
+
+    // Check if the chat already exists
+    const checkChatEndpoint = `${SUPABASE_URL}/rest/v1/chats?provider_chat_id=eq.${provider_chat_id}&user_id=eq.${user_id}`;
+    fetch(checkChatEndpoint, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: API_KEY,
+        Authorization: `Bearer ${API_KEY}`,
+      },
+    })
+      .then(response => response.json())
+      .then(existingChats => {
+        if (existingChats.length > 0) {
+          const existingChat = existingChats[0];
+          if (existingChat.title !== title) {
+            // Update the chat title if it's different
+            const updateChatEndpoint = `${SUPABASE_URL}/rest/v1/chats?id=eq.${existingChat.id}`;
+            fetch(updateChatEndpoint, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: API_KEY,
+                Authorization: `Bearer ${API_KEY}`,
+              },
+              body: JSON.stringify({ title }),
+            })
+              .then(updateResponse => {
+                if (!updateResponse.ok) {
+                  const errorDescription = errorCodeMap[updateResponse.status] || 'Unknown error occurred';
+                  console.error(`Error updating chat: ${errorDescription}`);
+                  sendResponse({ success: false, error: errorDescription });
+                } else {
+                  console.log('Chat updated successfully:');
+                  sendResponse({ success: true, data: "Chat updated successfully" });
+                }
+              })
+              .catch(error => {
+                console.error('Fetch error:', error);
+                sendResponse({ success: false, error: error.message });
+              });
+          } else {
+            console.log('Chat already exists with the same title, no update needed.');
+            sendResponse({ success: true, data: "Chat already exists with the same title" });
+          }
+        } else {
+          // Insert new chat if it doesn't exist
+          const chatPayload = {
+            user_id,
+            provider_chat_id,
+            title,
+            provider_name,
+            created_at: new Date().toISOString(),
+          };
+          console.log('Payload prepared for Supabase (chat):', chatPayload);
+
+          const chatEndpoint = `${SUPABASE_URL}/rest/v1/chats`;
+          fetch(chatEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: API_KEY,
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify(chatPayload),
+          })
+            .then(response => {
+              if (!response.ok) {
+                const errorDescription = errorCodeMap[response.status] || 'Unknown error occurred';
+                console.error(`Error saving chat: ${errorDescription}`);
+                sendResponse({ success: false, error: errorDescription });
+              } else {
+                console.log('Chat saved successfully:');
+                sendResponse({ success: true, data: "Chat saved successfully" });
+              }
+            })
+            .catch(error => {
+              console.error('Fetch error:', error);
+              sendResponse({ success: false, error: error.message });
+            });
+        }
+      })
+      .catch(error => {
+        console.error('Error checking chat existence:', error);
+        sendResponse({ success: false, error: error.message });
+      });
 
     // Return true to signal that we want to send an asynchronous response.
     return true;
