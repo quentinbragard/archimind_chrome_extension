@@ -3,42 +3,65 @@
  * Updates the provided chatHistoryData object with the chat title and provider_chat_id.
  * Also triggers a SAVE_CHAT message to the background script.
  *
- * @param {object} chatHistoryData - Object with properties: savedChatName and globalProviderChatId.
+ * @param {object} chatHistoryData - Object with properties: savedChatName and providerChatId.
  * @returns {object} The updated chatHistoryData.
  */
 
 export function checkChatGPTChatHistory(chatHistoryData) {
-  const newChatItem = document.querySelector('li[data-testid="history-item-0"] > div[style*="var(--sidebar-surface-tertiary)"]');
-  if (!newChatItem) return chatHistoryData;
+  console.log("CHECKING CHAT HISTORY==========", chatHistoryData);
+
+
+  // Use querySelector to select the unique chat item
+  let currentChatItem = document.querySelector('li[data-testid^="history-item-"] > div[style*="var(--sidebar-surface-tertiary)"]');
+
+  if (!currentChatItem) {
+    console.warn("No CURRENT CHAT ITEM found. Checking for first item...");
+    // Check for the first item if no current chat item is found
+    currentChatItem = document.querySelector('li[data-testid^="history-item-0"]');
+  }
+
+  if (!currentChatItem) {
+    console.warn("No chat item found.");
+    return chatHistoryData;
+  }
+
+  console.log("CHAT ITEM", currentChatItem);
+
+  const chatTitle = currentChatItem.innerText.trim();
   
-  const chatTitle = newChatItem.innerText.trim();
   if (chatHistoryData.savedChatName === chatTitle) return chatHistoryData;
-  
-  const liElement = newChatItem.closest('li');
+  let chatId = null;
+
+  const liElement = currentChatItem.closest('li');
   if (!liElement) return chatHistoryData;
-  
+
   const anchor = liElement.querySelector('a[href]');
   if (anchor) {
     const href = anchor.getAttribute('href');
     const match = href.match(/\/c\/([^\/\?]+)/);
     if (match) {
-      chatHistoryData.globalProviderChatId = match[1];
+      chatId = match[1];
     }
   }
-  chatHistoryData.savedChatName = chatTitle;
-  
+
   // Trigger SAVE_CHAT message without waiting for a response.
-  chrome.storage.sync.get('supabaseUserId', (storageData) => {
-    const userId = storageData.supabaseUserId || 'default_user';
-    chrome.runtime.sendMessage({
-      type: 'SAVE_CHAT',
-      data: {
-        user_id: userId,
-        provider_chat_id: chatHistoryData.globalProviderChatId,
-        title: chatTitle,
-        provider_name: 'chatGPT'
-      }
-    }, () => {});
-  });
-  return chatHistoryData;
-} 
+  if (chatId) {
+    chrome.storage.sync.get('supabaseUserId', (storageData) => {
+      const userId = storageData.supabaseUserId || 'default_user';
+      chrome.runtime.sendMessage({
+        type: 'SAVE_CHAT',
+        data: {
+          user_id: userId,
+          provider_chat_id: chatId,
+          title: chatTitle,
+          provider_name: 'chatGPT'
+        }
+      }, () => {});
+    });
+  }
+
+  return {
+    savedChatName: chatTitle,
+    providerChatId: chatId
+  };
+}

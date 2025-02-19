@@ -31,7 +31,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Received message from content script:', request);
 
   if (request.type === 'SAVE_MESSAGE') {
-    // Retrieve user ID from storage (set via your popup)
     chrome.storage.sync.get('supabaseUserId', async (storageData) => {
       const userId = storageData.supabaseUserId || 'default_user';
       console.log('Retrieved user ID:', userId);
@@ -43,11 +42,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
 
       // Destructure message data sent from the content script
-      const { messageType, message, rank, messageId, providerChatId, model } = request.data;
-      console.log('Message data:', { messageType, message, rank, messageId, providerChatId, model });
+      const { role, message, rank, message_id, provider_chat_id, model, thinking_time } = request.data;
+      console.log('Message data:', { role, message, rank, message_id, provider_chat_id, model, thinking_time });
 
       // Check if the message ID already exists
-      const checkEndpoint = `${SUPABASE_URL}/rest/v1/messages?message_id=eq.${messageId}`;
+      const checkEndpoint = `${SUPABASE_URL}/rest/v1/messages?user_id=eq.${userId}&message_id=eq.${message_id}`;
       try {
         const checkResponse = await fetch(checkEndpoint, {
           method: 'GET',
@@ -60,8 +59,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const existingMessages = await checkResponse.json();
         if (existingMessages.length > 0) {
-          console.log('Message ID already exists, skipping save.');
-          sendResponse({ success: true, data: "Message already exists" });
+          console.log('Message ID already exists, updating record.');
+          const updateEndpoint = `${SUPABASE_URL}/rest/v1/messages?id=eq.${existingMessages[0].id}`;
+          const updatePayload = {
+            content: message,
+            role: role,
+            rank: rank,
+            provider_chat_id: provider_chat_id,
+            model: model,
+          };
+
+          console.log('Update payload:', updatePayload);  
+
+          const updateResponse = await fetch(updateEndpoint, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: API_KEY,
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify(updatePayload),
+          });
+
+          if (!updateResponse.ok) {
+            const errorDescription = errorCodeMap[updateResponse.status] || 'Unknown error occurred';
+            console.error(`Error updating message: ${errorDescription}`);
+            sendResponse({ success: false, error: errorDescription });
+          } else {
+            console.log('Message updated successfully:');
+            sendResponse({ success: true, data: "Message updated successfully" });
+          }
           return;
         }
       } catch (error) {
@@ -70,18 +97,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
 
-      // Determine the endpoint based on the message type
+      // If no existing message, insert a new one
       const endpoint = `${SUPABASE_URL}/rest/v1/messages`;
-
-      // Prepare the payload
       const payload = {
         user_id: userId,
         content: message,
-        role: messageType,
+        role: role,
         rank: rank,
-        message_id: messageId,
-        provider_chat_id: providerChatId,
+        message_id: message_id,
+        provider_chat_id: provider_chat_id,
         model: model,
+        thinking_time: thinking_time,
         created_at: new Date().toISOString(),
       };
       console.log('Payload prepared for Supabase:', payload);
