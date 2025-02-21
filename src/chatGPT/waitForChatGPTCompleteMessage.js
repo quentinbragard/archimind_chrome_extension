@@ -15,7 +15,6 @@ export function waitForChatGPTCompleteMessage(turnNumber) {
       elapsed += checkInterval;
       const selector = `article[data-testid="conversation-turn-${turnNumber}"] div[data-message-author-role="assistant"]`;
       const element = document.querySelector(selector);
-      console.log("++++++++++++++++++++==element", element);
       if (element && element.innerText.trim().length > 0) {
         clearInterval(interval);
         resolve(element);

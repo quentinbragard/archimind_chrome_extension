@@ -7,9 +7,6 @@
       "storage",
       "scripting"
     ],
-    "background": {
-      "service_worker": "background.js"
-    },
     "content_scripts": [
       {
         "matches": ["https://chatgpt.com/*"],
@@ -29,9 +26,8 @@
       {
         "resources": [
           "welcome.html",
-          "utils/getTurnNumber.js",
-          "chatGPT/processChatGPTNewArticles.js",
-          "chatGPT/waitForChatGPTCompleteMessage.js"
+          "utils",
+          "chatGPT"
         ],
         "matches": ["<all_urls>"]
       }
