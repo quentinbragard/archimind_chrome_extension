@@ -1,107 +1,216 @@
 import { getTurnNumber } from './utils/getTurnNumber.js';
 import { processChatGPTNewArticles } from './chatGPT/processChatGPTNewArticles.js';
-import { checkChatGPTChatHistory } from './chatGPT/checkChatGPTChatHistory.js';
 
-// Keeps track of the highest conversation-turn number processed so far
-let lastProcessedTurn = 0;
-// Global object to hold chat history state
 let chatHistoryData = {
   savedChatName: null,
   providerChatId: null,
 };
+let lastProcessedTurn = 0;
+const processedMessageIds = new Set();
 
-// Add a Set to track processed message IDs at the top of the file
-let processedMessageIds = new Set();
+let currentURL = window.location.href;
+let observer = null;
+let titleCheckInterval = null;
 
-async function initializeChatHistory() {
-  chatHistoryData = await waitForProviderChatId(chatHistoryData);
-  console.log("INITIALIZED CHAT HISTORY", chatHistoryData);
+// ============= ENTRY POINTS =============
+init();
+
+/** Main init: called once on script load */
+function init() {
+  handleUrlChange();
+  // Start the MutationObserver regardless, but its callback will bail out if no chat provider ID is set.
+  startMutationObserver();
+  listenForUrlChanges();
 }
 
-function waitForProviderChatId(chatHistoryData) {
-  return new Promise((resolve, reject) => {
-    const historyList = document.querySelector('ol');
-    const hasHistoryItems = historyList && historyList.querySelector('li[data-testid^="history-item-"]');
+/**
+ * Checks the current URL for a chatId ( /c/<chatId> ).
+ * If found, tries to get the title from the sidebar or uses a placeholder if we see "New Chat" or no sidebar item.
+ */
+function handleUrlChange() {
+  const url = window.location.href;
 
-    if (!hasHistoryItems) {
-      console.warn("No history items found. Setting providerChatId to 'no_history'.");
-      if (!chatHistoryData.providerChatId) {
-        let chatId = `no_history_${Date.now()}`;
-        let chatTitle = `no_title_${Date.now()}`;
-         // Trigger SAVE_CHAT message without waiting for a response.
+  // If no /c/<chatId> => nothing to do (home page or brand new conversation not yet started)
+  if (!/\/c\/[^/]+/.test(url)) {
+    console.log('[ChatGPT Extension] No chat provider ID in URL.');
+    chatHistoryData = { savedChatName: null, providerChatId: null };
+    return;
+  }
 
-          chrome.storage.sync.get('supabaseUserId', (storageData) => {
-            const userId = storageData.supabaseUserId || 'default_user';
-            chrome.runtime.sendMessage({
-              type: 'SAVE_CHAT',
-              data: {
-                user_id: userId,
-                provider_chat_id: chatId,
-                title: chatTitle,
-                provider_name: 'chatGPT'
-              }
-            }, () => {});
-          });
-        resolve(checkChatGPTChatHistory({
-          providerChatId: chatId,
-          savedChatName: chatTitle
-        }));
-      }
+  // Extract the chatId
+  const match = url.match(/\/c\/([^/?]+)/);
+  if (!match || !match[1]) {
+    chatHistoryData = fallbackNoHistory();
+    return;
+  }
+
+  const chatId = match[1].trim();
+  console.log('[ChatGPT Extension] Found chatId:', chatId);
+
+  // Attempt immediate detection of a real title:
+  const sidebarTitle = getChatTitleFromSidebar(chatId);
+
+  // If sidebar is empty or "New Chat", treat as placeholder
+  if (!sidebarTitle || sidebarTitle === 'New Chat') {
+    const placeholder = `no_title_${Date.now()}`;
+    saveChatToBackground(chatId, placeholder);
+
+    chatHistoryData = {
+      savedChatName: placeholder,
+      providerChatId: chatId,
+    };
+
+    // Keep checking in the background for the real title
+    startTitleCheckInterval(chatId);
+  } else {
+    // We found a real title
+    console.log('[ChatGPT Extension] Found immediate real title:', sidebarTitle);
+    saveChatToBackground(chatId, sidebarTitle);
+    chatHistoryData = {
+      savedChatName: sidebarTitle,
+      providerChatId: chatId,
+    };
+  }
+}
+
+/**
+ * Looks up the <a href="/c/<chatId>"> in the sidebar, returns a string title or null.
+ */
+function getChatTitleFromSidebar(chatId) {
+  const historyList = document.querySelector('ol');
+  if (!historyList) return null;
+
+  const sideLink = historyList.querySelector(`a[href="/c/${chatId}"]`);
+  if (!sideLink) return null;
+
+  const titleDiv = sideLink.querySelector('div[title]');
+  const chatTitle = titleDiv
+    ? titleDiv.getAttribute('title').trim()
+    : sideLink.innerText.trim();
+
+  return chatTitle || null;
+}
+
+/**
+ * Sets an interval to keep checking if the conversation's real title
+ * has replaced "New Chat" (or is no longer missing).
+ */
+function startTitleCheckInterval(chatId) {
+  // Clear any existing interval
+  if (titleCheckInterval) {
+    clearInterval(titleCheckInterval);
+    titleCheckInterval = null;
+  }
+
+  // Poll every 3 seconds
+  titleCheckInterval = setInterval(() => {
+    const possibleTitle = getChatTitleFromSidebar(chatId);
+    // If still no title or it's "New Chat", skip
+    if (!possibleTitle || possibleTitle === 'New Chat') {
+      return;
     }
+    // Once we find a real title, update the record
+    console.log('[ChatGPT Extension] Found updated title:', possibleTitle);
 
-    if (chatHistoryData.providerChatId && chatHistoryData.savedChatName) {
-      resolve(checkChatGPTChatHistory(chatHistoryData));
-    }
+    saveChatToBackground(chatId, possibleTitle);
+    chatHistoryData.savedChatName = possibleTitle;
 
-    // Wait 3 seconds before checking the provider chat ID
-    setTimeout(() => {
-      console.log("CHECKING PROVIDER CHAT ID...");
-      if (chatHistoryData.providerChatId) {
-        resolve(checkChatGPTChatHistory(chatHistoryData));
-      } else {
-        reject(new Error('Provider chat ID not found.'));
-      }
-    }, 3000); // Wait for 3 seconds
+    clearInterval(titleCheckInterval);
+    titleCheckInterval = null;
+  }, 3000);
+}
+
+/** Creates a fallback "no_history" record if we can't parse the chatId. */
+function fallbackNoHistory() {
+  const chatId = `no_history_${Date.now()}`;
+  const chatTitle = `no_title_${Date.now()}`;
+  saveChatToBackground(chatId, chatTitle);
+  return { savedChatName: chatTitle, providerChatId: chatId };
+}
+
+/** Sends a SAVE_CHAT message to background.js */
+function saveChatToBackground(chatId, chatTitle) {
+  chrome.storage.sync.get('supabaseUserId', (storageData) => {
+    const userId = storageData.supabaseUserId || 'default_user';
+    chrome.runtime.sendMessage({
+      type: 'SAVE_CHAT',
+      data: {
+        user_id: userId,
+        provider_chat_id: chatId,
+        title: chatTitle,
+        provider_name: 'chatGPT',
+      },
+    });
   });
 }
 
-initializeChatHistory().then(() => {
-  // Set up a MutationObserver to watch for changes in the document
-  const observer = new MutationObserver(async () => {  // Make the callback async
-    console.log("MUTATION OBSERVER TRIGGERED");
+// ============ MutationObserver for new messages ============
+let isProcessing = false;
+
+function processNewArticleIfNotRunning(article) {
+  if (isProcessing) return; // Skip if processing is already underway
+
+  isProcessing = true;
+  processChatGPTNewArticles(article, chatHistoryData.providerChatId, lastProcessedTurn)
+    .then((updatedTurn) => {
+      lastProcessedTurn = updatedTurn;
+    })
+    .catch((err) => {
+      console.error('[ChatGPT Extension] Error in processChatGPTNewArticles:', err);
+    })
+    .finally(() => {
+      isProcessing = false;
+    });
+}
+
+
+function startMutationObserver() {
+  if (observer) {
+    observer.disconnect();
+  }
+
+  observer = new MutationObserver(() => {
+    // Check if a valid chat provider ID is set; if not, skip processing messages.
+    if (!chatHistoryData.providerChatId) {
+      return;
+    }
+
     const articles = document.querySelectorAll('article[data-testid^="conversation-turn-"]');
-    console.log("ARTICLES", articles);
-    
-    // Use for...of instead of forEach for sequential processing
-    for (const article of articles) {
-      const turnNumber = getTurnNumber(article);
-      console.log("TURN NUMBER", turnNumber); 
-      console.log("LAST PROCESSED TURN", lastProcessedTurn);
-      
-      // Check if we've already processed this message
-      const messageId = article.querySelector('div[data-message-id]')?.getAttribute('data-message-id');
-      if (messageId && processedMessageIds.has(messageId)) {
-        console.log('Message already processed, skipping:', messageId);
-        continue;
-      }
+    if (!articles || !articles.length) return;
 
-      if (turnNumber > lastProcessedTurn) {
-        const userMessage = article.querySelector('div[data-message-author-role="user"]');
-        const assistantMessage = article.querySelector('div[data-message-author-role="assistant"]');
-        const role = userMessage ? 'user' : (assistantMessage ? 'assistant' : '');
-        
-        if (messageId) {
-          processedMessageIds.add(messageId);
+    for (const article of articles) {
+        const turnNumber = getTurnNumber(article);
+        if (turnNumber == null) continue;
+      
+        const messageId = article.querySelector('div[data-message-id]')?.getAttribute('data-message-id');
+        if (!messageId) continue;
+      
+        if (processedMessageIds.has(messageId)) {
+          continue;
         }
-        
-        console.log('Processing article:', article);
-        lastProcessedTurn = await processChatGPTNewArticles(article, role, chatHistoryData.providerChatId);
+        processedMessageIds.add(messageId);
+      
+        if (turnNumber > lastProcessedTurn) {
+          processNewArticleIfNotRunning(article);
+        }
       }
-    }
-    console.log("LAST PROCESSED TURN", lastProcessedTurn);
+      
   });
 
-  // Observe the document body for added nodes in the subtree
   observer.observe(document.body, { childList: true, subtree: true });
-});
+}
 
+// ============ Detect URL changes ============
+function listenForUrlChanges() {
+  setInterval(() => {
+    if (window.location.href !== currentURL) {
+      console.log('[ChatGPT Extension] URL changed:', window.location.href);
+      currentURL = window.location.href;
+
+      processedMessageIds.clear();
+      lastProcessedTurn = 0;
+
+      handleUrlChange();
+    }
+  }, 1000);
+}

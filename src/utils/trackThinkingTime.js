@@ -7,9 +7,9 @@ export function trackThinkingTime() {
     if (stopButton) {
       console.log("Stop button found, starting timer...");
       const intervalId = setInterval(() => {
-        thinkingTime += 1; // Increment by 1 second
+        thinkingTime += 0.1; // Increment by 1 second
         console.log(`Thinking time: ${thinkingTime} s`);
-      }, 1000);
+      }, 100);
 
       // Observe the stop button to detect when it disappears
       const observer = new MutationObserver(() => {
