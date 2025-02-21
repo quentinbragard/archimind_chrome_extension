@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Definitions for gradients and effects -->
+  <defs>
+    <linearGradient id="aGradient4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4A6F85" />
+      <stop offset="50%" stop-color="#7B9EB3" />
+      <stop offset="100%" stop-color="#4A6F85" />
+    </linearGradient>
+    <linearGradient id="shieldGradient4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7B9EB3" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#4A6F85" stop-opacity="0.3" />
+    </linearGradient>
+    <filter id="glow4" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="dropShadow4" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#334854" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  
+  <!-- Shield background element -->
+  <path d="M100 15 
+           Q130 15, 150 35
+           Q170 55, 170 85
+           Q170 130, 130 160
+           Q110 175, 100 180
+           Q90 175, 70 160
+           Q30 130, 30 85
+           Q30 55, 50 35
+           Q70 15, 100 15Z" 
+        fill="white" stroke="#334854" stroke-width="2" filter="url(#dropShadow4)" />
+        
+  <!-- Inner shield gradient -->
+  <path d="M100 25 
+           Q125 25, 140 40
+           Q160 60, 160 85
+           Q160 125, 125 150
+           Q110 165, 100 170
+           Q90 165, 75 150
+           Q40 125, 40 85
+           Q40 60, 60 40
+           Q75 25, 100 25Z" 
+        fill="url(#shieldGradient4)" stroke="none" />
+  
+  <!-- World elements -->
+  <circle cx="100" cy="105" r="55" fill="none" stroke="#A9C2D8" stroke-width="1" opacity="0.7" />
+  <ellipse cx="100" cy="105" rx="55" ry="20" fill="none" stroke="#A9C2D8" stroke-width="1" opacity="0.4" />
+  <path d="M45 105 L155 105" stroke="#A9C2D8" stroke-width="1" opacity="0.6" />
+  <path d="M100 50 L100 160" stroke="#A9C2D8" stroke-width="1" opacity="0.6" />
+  <path d="M58 63 L142 147" stroke="#A9C2D8" stroke-width="1" opacity="0.4" />
+  <path d="M58 147 L142 63" stroke="#A9C2D8" stroke-width="1" opacity="0.4" />
+  
+  <!-- A letter -->
+  <path d="M70 140 L100 45 L130 140" fill="none" stroke="#334854" stroke-width="8" stroke-linejoin="round" />
+  <path d="M82 110 L118 110" fill="none" stroke="#334854" stroke-width="8" />
+  
+  <!-- Shield-like protective arcs -->
+  <path d="M50 55 Q100 15 150 55" fill="none" stroke="url(#aGradient4)" stroke-width="6" stroke-linecap="round" filter="url(#glow4)" />
+  <path d="M100 15 L100 30" fill="none" stroke="url(#aGradient4)" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- Energy field effect around shield perimeter -->
+  <path d="M40 85 Q50 75 65 70" fill="none" stroke="#7B9EB3" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+  <path d="M60 45 Q75 38 100 35" fill="none" stroke="#7B9EB3" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+  <path d="M100 35 Q125 38 140 45" fill="none" stroke="#7B9EB3" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+  <path d="M135 70 Q150 75 160 85" fill="none" stroke="#7B9EB3" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+</svg>

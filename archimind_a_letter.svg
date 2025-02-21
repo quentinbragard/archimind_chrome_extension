@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Definitions for gradients and effects -->
+  <defs>
+    <linearGradient id="aGradient4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4A6F85" />
+      <stop offset="50%" stop-color="#7B9EB3" />
+      <stop offset="100%" stop-color="#4A6F85" />
+    </linearGradient>
+    <filter id="glow4" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- A letter -->
+  <path d="M70 140 L100 45 L130 140" fill="none" stroke="#334854" stroke-width="8" stroke-linejoin="round" />
+  <path d="M82 110 L118 110" fill="none" stroke="#334854" stroke-width="8" />
+  
+  <!-- Shield-like protective arc above A -->
+  <path d="M50 55 Q100 15 150 55" fill="none" stroke="url(#aGradient4)" stroke-width="6" stroke-linecap="round" filter="url(#glow4)" />
+  
+  <!-- Center accent line -->
+  <path d="M100 15 L100 30" fill="none" stroke="url(#aGradient4)" stroke-width="3" stroke-linecap="round" />
+</svg>
