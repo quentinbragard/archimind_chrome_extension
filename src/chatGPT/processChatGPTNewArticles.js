@@ -42,8 +42,11 @@ export async function processChatGPTNewArticles(article, providerChatId, lastPro
     const nextTurnNumber = turnNumber + 1;
     console.log("=====================next turn number", nextTurnNumber);
     const assistantElement = await waitForChatGPTCompleteMessage(nextTurnNumber);
+    console.log("++++++++++++++++++++=pppppppppppp=assistantElement", assistantElement);
     if (assistantElement) {
       const thinkingTime = await trackThinkingTime();
+      const assistantElement = await waitForChatGPTCompleteMessage(nextTurnNumber);
+      console.log("++++++++++++++++++++=pppppppppppp=assistantElement", assistantElement);
       const assistantMsgId = assistantElement.getAttribute('data-message-id');
       const assistantMsgText = assistantElement.innerText.trim();
       console.log("After user message we have wiated and store the assistant answer", assistantMsgText);

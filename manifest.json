@@ -31,8 +31,7 @@
           "welcome.html",
           "utils/getTurnNumber.js",
           "chatGPT/processChatGPTNewArticles.js",
-          "chatGPT/waitForChatGPTCompleteMessage.js",
-          "chatGPT/checkChatGPTChatHistory.js"
+          "chatGPT/waitForChatGPTCompleteMessage.js"
         ],
         "matches": ["<all_urls>"]
       }
