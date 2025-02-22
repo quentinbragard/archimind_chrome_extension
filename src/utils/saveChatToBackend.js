@@ -3,18 +3,19 @@ import { getAuthToken } from './auth.js';
 /**
  * Saves chat details to the backend using OAuth authentication.
  */
-export function saveChatToBackend({userId, chatId, chatTitle, providerName}) {
+export function saveChatToBackend({chatId, chatTitle, providerName}) {
     getAuthToken(async function(token) {
       const payload = {
-        user_id: userId,
         provider_chat_id: chatId,
         title: chatTitle,
         provider_name: providerName,
       };
+
+      console.log("===========Auth Token:", token);
   
       console.log("Payload being sent to backend:", payload);
   
-      fetch('https://fastapi-backend-sw5cmqbraq-ew.a.run.app/save_chat', {
+      fetch('https://archimind-backend-32108269805.europe-west1.run.app/save_chat', {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",

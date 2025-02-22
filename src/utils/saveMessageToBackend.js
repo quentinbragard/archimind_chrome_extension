@@ -5,13 +5,12 @@ import { getModelInfo } from './getModelInfo.js';
  * Saves a message to the backend using OAuth authentication.
  */
 export async function saveMessageToBackend({
-  userId,
   role,
   message,
   rank,
   messageId,
   providerChatId,
-  thinkingTime,
+  thinkingTime = 0,
 }) {
   if (!message) {
     console.warn(`Skipping empty ${role} message for messageId: ${messageId}`);
@@ -22,11 +21,10 @@ export async function saveMessageToBackend({
   getAuthToken(async function(token) {
     try {
       const payload = {
-        user_id: userId,
+        message_id: messageId,
         content: message,
         role,
         rank: parseInt(rank),
-        message_id: messageId,
         provider_chat_id: providerChatId,
         model,
         thinking_time: thinkingTime,
@@ -34,7 +32,7 @@ export async function saveMessageToBackend({
 
       console.log("Payload being sent to backend:", payload);
 
-      const response = await fetch('https://fastapi-backend-sw5cmqbraq-ew.a.run.app/save_message', {
+      const response = await fetch('https://archimind-backend-32108269805.europe-west1.run.app/save_message', {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",

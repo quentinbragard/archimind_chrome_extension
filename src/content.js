@@ -1,5 +1,5 @@
 import { getTurnNumber } from './utils/getTurnNumber.js';
-import { getUserId } from './utils/getUserId.js'
+import { getUserId } from './utils/getUserId.js';
 import { saveChatToBackend } from './utils/saveChatToBackend.js';
 import { processChatGPTNewArticles } from './chatGPT/processChatGPTNewArticles.js';
 import { getChatTitleFromSidebar } from './utils/getChatTitleFromSidebar.js';
@@ -16,12 +16,15 @@ let observer = null;
 let titleCheckInterval = null;
 let userId = null;
 
+
 // ============= ENTRY POINTS =============
 init();
 
 /** Main init: called once on script load */
 async function init() {
+  console.log("===========Init");
   userId = await getUserId();
+  console.log("===========UserId:", userId);
   if (!userId) {
     console.error('Supabase user ID not set.');
     return;
@@ -69,11 +72,11 @@ function handleUrlChange() {
         savedChatName: placeholder,
         providerChatId: chatId,
       };
-    saveChatToBackend({userId, chatId, chatTitle:placeholder, providerName: 'chatGPT'});
+    saveChatToBackend({chatId, chatTitle:placeholder, providerName: 'chatGPT'});
   } else {
     // We found a real title
     console.log('Saving chat with title:', sidebarTitle);
-    saveChatToBackend({userId, chatId, chatTitle:sidebarTitle, providerName: 'chatGPT'});
+    saveChatToBackend({chatId, chatTitle:sidebarTitle, providerName: 'chatGPT'});
     chatHistoryData = {
       savedChatName: sidebarTitle,
       providerChatId: chatId,
@@ -104,7 +107,7 @@ function startTitleCheckInterval(chatId) {
     // Once we find a real title, update the record
     console.log('[ChatGPT Extension] Found updated title:', possibleTitle);
 
-    saveChatToBackend({userId, chatId, chatTitle:possibleTitle, providerName: 'chatGPT'});
+    saveChatToBackend({chatId, chatTitle:possibleTitle, providerName: 'chatGPT'});
     chatHistoryData.savedChatName = possibleTitle;
 
     clearInterval(titleCheckInterval);
@@ -116,7 +119,7 @@ function startTitleCheckInterval(chatId) {
 function fallbackNoHistory() {
   const chatId = `no_history_${Date.now()}`;
   const chatTitle = `no_title_${Date.now()}`;
-  saveChatToBackend({userId, chatId, chatTitle, providerName: 'chatGPT'});
+  saveChatToBackend({chatId, chatTitle, providerName: 'chatGPT'});
   return { savedChatName: chatTitle, providerChatId: chatId };
 }
 
@@ -127,7 +130,7 @@ function processNewArticleIfNotRunning(article) {
   if (isProcessing) return; // Skip if processing is already underway
 
   isProcessing = true;
-  processChatGPTNewArticles(userId, article, chatHistoryData.providerChatId, lastProcessedTurn, chatHistoryData)
+  processChatGPTNewArticles(article, chatHistoryData.providerChatId, lastProcessedTurn, chatHistoryData)
     .then((updatedTurn) => {
       lastProcessedTurn = updatedTurn;
     })

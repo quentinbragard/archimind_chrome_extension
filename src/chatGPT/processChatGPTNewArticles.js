@@ -13,7 +13,7 @@ import { saveChatToBackend } from '../utils/saveChatToBackend.js';
  * @param {object} chatHistoryData - The current state of chat history data.
  * @returns {Promise<number>} - The new highest turn number processed.
  */
-export async function processChatGPTNewArticles(userId, article, providerChatId, lastProcessedTurn, chatHistoryData) {
+export async function processChatGPTNewArticles(article, providerChatId, lastProcessedTurn, chatHistoryData) {
   console.log('[ChatGPT Extension] Processing new article:', article);
   const turnNumber = getTurnNumber(article);
   if (turnNumber == null) return lastProcessedTurn;
@@ -31,7 +31,6 @@ export async function processChatGPTNewArticles(userId, article, providerChatId,
 
     // 1) Store the user message
     await saveMessageToBackend({
-      userId,
       role: 'user',
       message: userMessageText,
       rank: turnNumber - 1,   // or turnNumber - 1 if you still want offset
@@ -51,7 +50,6 @@ export async function processChatGPTNewArticles(userId, article, providerChatId,
       console.log("After user message we have waited and stored the assistant answer", assistantMsgText);
 
       await saveMessageToBackend({
-        userId,
         role: 'assistant',
         message: assistantMsgText,
         rank: nextTurnNumber - 1,
@@ -65,7 +63,7 @@ export async function processChatGPTNewArticles(userId, article, providerChatId,
       const currentTitle = getChatTitleFromSidebar(providerChatId);
       if (currentTitle && currentTitle !== chatHistoryData.savedChatName) {
         console.log('[ChatGPT Extension] Chat title has changed:', currentTitle);
-        saveChatToBackend({ userId, chatId: providerChatId, chatTitle: currentTitle, providerName: 'chatGPT' });
+        saveChatToBackend({ chatId: providerChatId, chatTitle: currentTitle, providerName: 'chatGPT' });
         chatHistoryData.savedChatName = currentTitle;
       }
 
@@ -88,7 +86,6 @@ export async function processChatGPTNewArticles(userId, article, providerChatId,
 
     const thinkingTime = await trackThinkingTime();
     await saveMessageToBackend({
-      userId,
       role: 'assistant',
       message: assistantMsgText,
       rank: turnNumber - 1,
@@ -101,7 +98,7 @@ export async function processChatGPTNewArticles(userId, article, providerChatId,
     const currentTitle = getChatTitleFromSidebar(providerChatId);
     if (currentTitle && currentTitle !== chatHistoryData.savedChatName) {
       console.log('[ChatGPT Extension] Chat title has changed:', currentTitle);
-      saveChatToBackend({ userId, chatId: providerChatId, chatTitle: currentTitle, providerName: 'chatGPT' });
+      saveChatToBackend({ chatId: providerChatId, chatTitle: currentTitle, providerName: 'chatGPT' });
       chatHistoryData.savedChatName = currentTitle;
     }
 

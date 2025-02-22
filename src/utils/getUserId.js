@@ -1,10 +1,11 @@
 export async function getUserId() {
+  console.log("===========Get User Id");
     return new Promise((resolve, reject) => {
-      chrome.storage.sync.get('supabaseUserId', (storageData) => {
+      chrome.storage.sync.get('userId', (storageData) => {
         if (chrome.runtime.lastError) {
           return reject(chrome.runtime.lastError);
         }
-        resolve(storageData.supabaseUserId || null);
+        resolve(storageData.userId || null);
       });
     });
   }

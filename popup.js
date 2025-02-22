@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (error) {
         displayMessage("Error signing out: " + error.message);
       } else {
-        chrome.storage.sync.remove("supabaseUserId", () => {
+        chrome.storage.sync.remove("userId", () => {
           console.log("User signed out from Chrome storage.");
         });
         emailInput.value = "";
@@ -65,7 +65,7 @@ async function checkSession() {
   if (session && session.user) {
     // User is logged in.
     // Store the user's ID in Chrome storage so that background.js can use it.
-    chrome.storage.sync.set({ supabaseUserId: session.user.id }, () => {
+    chrome.storage.sync.set({ userId: session.user.id }, () => {
       console.log("Stored Supabase user ID:", session.user.id);
     });
     displayMessage("Logged in as: " + session.user.email);

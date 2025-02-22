@@ -4,7 +4,7 @@ export function getAuthToken(callback) {
             console.error("Error getting auth token:", response.error);
             return;
         }
-        console.log("OAuth Token:", response.token);
+        console.log("Auth Token:", response.token);
         callback(response.token);
     });
 }

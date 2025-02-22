@@ -9,9 +9,12 @@
       "identity"
     ],
     "oauth2": {
-        "client_id": "32108269805-qd8kj8jgm8ir99gqb83t7764tdu7pkvv.apps.googleusercontent.com",
-        "scopes": ["openid", "email"]
-    },
+    "client_id": "32108269805-41r18uv12i7ckqqo9ice7dr7jbe50qgp.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
+    "host_permissions": [
+      "*://*/*"
+    ],
     "background": {
         "service_worker": "background.js"
     },
