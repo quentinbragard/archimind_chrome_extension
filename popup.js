@@ -1,95 +1,86 @@
-// popup.js
-
-// Supabase configuration – use your Supabase project URL and anon/public key.
-// Note: Do not expose your service role key to clients.
-const SUPABASE_URL = 'https://gjszbwfzgnwblvdehzcq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdqc3pid2Z6Z253Ymx2ZGVoemNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzczNzc1MTgsImV4cCI6MjA1Mjk1MzUxOH0.j8IsFttSHrHCm5K_Z7A19pMftuNwDfpKww2dBAYaXUQ';
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// DOM elements
+const loginSection = document.getElementById('login-section');
+const loggedInSection = document.getElementById('logged-in-section');
+const signInButton = document.getElementById('sign-in');
+const signOutButton = document.getElementById('sign-out');
+const userEmailSpan = document.getElementById('user-email');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+const messageDiv = document.getElementById('message');
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // First, check whether we already have an authenticated session.
   await checkSession();
 
-  // Reference the button element.
-  const saveButton = document.getElementById('save');
+  signInButton.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
 
-  // Attach click listener – it functions as either sign in or sign out.
-  saveButton.addEventListener('click', async () => {
-    const emailInput = document.getElementById('userId');
-    
-    // If the button reads "Sign Out", then perform sign-out.
-    if (saveButton.textContent === "Sign Out") {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) {
-        displayMessage("Error signing out: " + error.message);
-      } else {
-        chrome.storage.sync.remove("userId", () => {
-          console.log("User signed out from Chrome storage.");
-        });
-        emailInput.value = "";
-        emailInput.disabled = false;
-        saveButton.textContent = "Sign In";
-        displayMessage("Signed out successfully.");
-      }
-    } else {
-      // Sign in flow: use the email in the input to send a magic link.
-      const email = emailInput.value.trim();
-      if (!email) {
-        displayMessage("Please enter your email address.");
-        return;
-      }
-      // Trigger Supabase's magic link sign-in.
-      const { error } = await supabaseClient.auth.signInWithOtp({ email });
-      if (error) {
-        displayMessage("Error sending magic link: " + error.message);
-      } else {
-        displayMessage("Magic link sent to " + email + ". Check your email.");
-      }
+    if (!email || !password) {
+      displayMessage("Please enter both email and password.");
+      return;
     }
+
+    // Send request to background.js for authentication
+    chrome.runtime.sendMessage(
+      { action: "emailSignIn", email, password },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          displayMessage("Error: " + chrome.runtime.lastError.message);
+          return;
+        }
+
+        if (response.success) {
+          console.log("✅ Signed in:", response.user);
+          displayUI(true, response.user.email);
+          displayMessage("Successfully signed in.");
+        } else {
+          displayMessage("Error: " + response.error);
+        }
+      }
+    );
   });
 
-  // Listen to auth state changes so we can update the UI if the user completes login.
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("Auth state changed:", event, session);
-    checkSession();
+  signOutButton.addEventListener('click', async () => {
+    chrome.storage.sync.remove(["supabaseSessionAccessToken", "userId"], () => {
+      console.log("User signed out.");
+      displayUI(false, null);
+      displayMessage("Signed out successfully.");
+    });
   });
 });
 
-// Function to check the current session and update the UI accordingly.
 async function checkSession() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  const emailInput = document.getElementById('userId');
-  const saveButton = document.getElementById('save');
+  chrome.runtime.sendMessage({ action: "getAuthToken" }, (response) => {
+    if (chrome.runtime.lastError || !response.success) {
+      console.log("No active session.");
+      displayUI(false, null);
+      return;
+    }
 
-  if (session && session.user) {
-    // User is logged in.
-    // Store the user's ID in Chrome storage so that background.js can use it.
-    chrome.storage.sync.set({ userId: session.user.id }, () => {
-      console.log("Stored Supabase user ID:", session.user.id);
+    chrome.storage.sync.get(["userId"], (data) => {
+      if (data.userId) {
+        console.log("✅ Session active:", data.userId);
+        displayUI(true, response.token);
+      } else {
+        displayUI(false, null);
+      }
     });
-    displayMessage("Logged in as: " + session.user.email);
-    emailInput.value = session.user.email;
-    emailInput.disabled = true;
-    // Change the button to let the user sign out.
-    saveButton.textContent = "Sign Out";
+  });
+}
+
+function displayUI(isLoggedIn, email) {
+  if (isLoggedIn) {
+    loginSection.classList.add("hidden");
+    loggedInSection.classList.remove("hidden");
+    userEmailSpan.textContent = email;
   } else {
-    // No active session.
-    displayMessage("Please sign in with your email address.");
-    emailInput.disabled = false;
-    saveButton.textContent = "Sign In";
+    loginSection.classList.remove("hidden");
+    loggedInSection.classList.add("hidden");
+    emailInput.value = "";
+    passwordInput.value = "";
   }
 }
 
-// Utility function to display a message to the user.
 function displayMessage(msg) {
-  const messageDiv = document.getElementById('message') || createMessageDiv();
   messageDiv.textContent = msg;
 }
-
-function createMessageDiv() {
-  const newDiv = document.createElement('div');
-  newDiv.id = 'message';
-  document.body.appendChild(newDiv);
-  return newDiv;
-} 

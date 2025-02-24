@@ -4,6 +4,9 @@ import { saveChatToBackend } from './utils/saveChatToBackend.js';
 import { processChatGPTNewArticles } from './chatGPT/processChatGPTNewArticles.js';
 import { getChatTitleFromSidebar } from './utils/getChatTitleFromSidebar.js';
 
+
+import "./content-style.css";
+
 let chatHistoryData = {
   savedChatName: null,
   providerChatId: null,
@@ -15,7 +18,6 @@ let currentURL = window.location.href;
 let observer = null;
 let titleCheckInterval = null;
 let userId = null;
-
 
 // ============= ENTRY POINTS =============
 init();
@@ -29,16 +31,111 @@ async function init() {
     console.error('Supabase user ID not set.');
     return;
   }
+  console.log("Ready to inject Archimind Button");
+
+  injectArchimindButton(); // Add Archimind UI elements
   handleUrlChange();
-  // Start the MutationObserver regardless, but its callback will bail out if no chat provider ID is set.
   startMutationObserver();
   listenForUrlChanges();
 }
 
-/**
- * Checks the current URL for a chatId ( /c/<chatId> ).
- * If found, tries to get the title from the sidebar or uses a placeholder if we see "New Chat" or no sidebar item.
- */
+/** Injects the Archimind floating button and popup modal */
+function injectArchimindButton() {
+  console.log("===========Injecting Archimind Button");
+  if (document.getElementById("Archimind-extension-button")) return;
+
+  // Floating Button
+  const button = document.createElement("button");
+  button.id = "Archimind-extension-button";
+  document.body.appendChild(button);
+
+  // Modal
+  const modal = document.createElement("div");
+  modal.id = "Archimind-modal";
+  modal.classList.add("hidden");
+  modal.innerHTML = `
+    <div class="Archimind-modal-content">
+      <h2>Archimind Stats</h2>
+      <div>
+        <p>📊 Placeholder Stats: 120 prompts today</p>
+        <h3>📁 Files</h3>
+        <ul id="Archimind-file-list" class="features-list">
+          <li data-file="file1">Analysis Report</li>
+          <li data-file="file2">Daily Summary</li>
+        </ul>
+        <div id="Archimind-prompt-list" class="hidden">
+          <h3>💡 Prompts</h3>
+          <ul>
+            <li>How to improve AI-generated text?</li>
+            <li>Best practices for prompting ChatGPT?</li>
+          </ul>
+        </div>
+      </div>
+      <button id="close-Archimind-modal">Close</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Add animation delays to list items
+  const listItems = modal.querySelectorAll('li');
+  listItems.forEach((item, index) => {
+    item.style.setProperty('--item-index', index);
+  });
+
+  // Button Click -> Show Modal with animation
+  let isOpen = false;
+  button.addEventListener("click", () => {
+    isOpen = !isOpen;
+    if (isOpen) {
+      modal.classList.remove("hidden");
+      // Reset animations
+      const lists = modal.querySelectorAll('ul');
+      lists.forEach(list => {
+        const items = Array.from(list.children);
+        items.forEach((item, index) => {
+          const clone = item.cloneNode(true);
+          clone.style.setProperty('--item-index', index);
+          item.parentNode.replaceChild(clone, item);
+        });
+      });
+    } else {
+      modal.classList.add("hidden");
+    }
+  });
+
+  // Close Button
+  document.getElementById("close-Archimind-modal").addEventListener("click", () => {
+    isOpen = false;
+    modal.classList.add("hidden");
+  });
+
+  // Handle file click event to show prompts
+  document.querySelectorAll("#Archimind-file-list li").forEach((item) => {
+    item.addEventListener("click", () => {
+      const promptList = document.getElementById("Archimind-prompt-list");
+      promptList.classList.remove("hidden");
+      // Reset animations for prompt list items
+      const items = promptList.querySelectorAll('li');
+      items.forEach((item, index) => {
+        const clone = item.cloneNode(true);
+        clone.style.setProperty('--item-index', index);
+        item.parentNode.replaceChild(clone, item);
+      });
+    });
+  });
+
+  // Close modal when clicking outside
+  document.addEventListener('click', (event) => {
+    if (isOpen && 
+        !modal.contains(event.target) && 
+        !button.contains(event.target)) {
+      isOpen = false;
+      modal.classList.add("hidden");
+    }
+  });
+}
+
+// ============ Existing Chat Saving & Processing Logic ============
 function handleUrlChange() {
   const url = window.location.href;
 
@@ -193,3 +290,5 @@ function listenForUrlChanges() {
     }
   }, 1000);
 }
+
+

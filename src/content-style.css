@@ -1,0 +1,195 @@
+#Archimind-extension-button {
+  background-image: url('https://gjszbwfzgnwblvdehzcq.supabase.co/storage/v1/object/public/chrome_extension_assets/archimind_letter_logo.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 58px;
+  border: 2px solid black;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px rgba(28, 77, 235, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  clip-path: path('M25 2.5L47.5 10V27.5C47.5 38.75 38.75 47.5 25 55C11.25 47.5 2.5 38.75 2.5 27.5V10L25 2.5Z');
+}
+
+/* ❌ Remove the text from the pseudo-element */
+#Archimind-extension-button::before {
+  content: '';  /* No text */
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+/* ✨ Add hover effect */
+#Archimind-extension-button:hover {
+  transform: scale(1.5);
+  box-shadow: 0 8px 12px rgba(28, 77, 235, 0.3);
+}
+
+/* ✨ Active click effect */
+#Archimind-extension-button:active {
+  transform: translateY(1px) scale(0.95);
+}
+
+#Archimind-modal {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 320px;
+  background: white;
+  padding: 0;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(28, 77, 235, 0.1);
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
+}
+
+#Archimind-modal.hidden {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+}
+
+.Archimind-modal-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+}
+
+.Archimind-modal-content h2 {
+  margin: 0;
+  padding: 20px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1C4DEB 0%, #153db8 100%);
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Archimind-modal-content h2::before {
+  content: '📊';
+  font-size: 20px;
+}
+
+.Archimind-modal-content > div {
+  padding: 20px;
+}
+
+.Archimind-modal-content h3 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#Archimind-file-list, #Archimind-prompt-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#Archimind-file-list li, #Archimind-prompt-list li {
+  padding: 12px 15px;
+  margin: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(28, 77, 235, 0.05);
+  color: #1C4DEB;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#Archimind-file-list li::before {
+  content: '📄';
+}
+
+#Archimind-prompt-list li::before {
+  content: '💡';
+}
+
+#Archimind-file-list li:hover, #Archimind-prompt-list li:hover {
+  background: rgba(28, 77, 235, 0.1);
+  transform: translateX(5px);
+}
+
+#close-Archimind-modal {
+  margin: 0;
+  width: 100%;
+  padding: 15px;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 0 0 16px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+#close-Archimind-modal:hover {
+  background: #ebebeb;
+  color: #333;
+}
+
+/* Custom scrollbar */
+.Archimind-modal-content {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.Archimind-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.Archimind-modal-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.Archimind-modal-content::-webkit-scrollbar-thumb {
+  background: rgba(28, 77, 235, 0.3);
+  border-radius: 4px;
+}
+
+.Archimind-modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 77, 235, 0.5);
+}
+
+/* Animations for list items */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#Archimind-file-list li, #Archimind-prompt-list li {
+  animation: slideIn 0.3s ease forwards;
+  animation-delay: calc(var(--item-index, 0) * 0.1s);
+}

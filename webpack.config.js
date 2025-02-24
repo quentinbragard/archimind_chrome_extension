@@ -1,11 +1,15 @@
 const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
-  entry: './src/content.js', // Your main content script file
+  mode: 'development', // Change en 'production' pour le déploiement
+  entry: './src/content.js',
   output: {
-    filename: 'bundle.js', // The output file
-    path: path.resolve(__dirname, 'dist'), // Output directory
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist'),
+    publicPath: '', // ✅ Ajouté pour éviter l'erreur "Automatic publicPath"
   },
+  devtool: false, // 🔥 Empêche Webpack d'utiliser eval(), bloqué par CSP
   module: {
     rules: [
       {
@@ -18,6 +22,20 @@ module.exports = {
           },
         },
       },
+      {
+        test: /\.css$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /\.(png|jpg|jpeg|gif|svg)$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'assets/[name][ext]',
+        },
+      },
     ],
   },
+  plugins: [
+    new MiniCssExtractPlugin({ filename: 'styles.css' }),
+  ],
 };

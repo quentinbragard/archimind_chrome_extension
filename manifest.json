@@ -12,9 +12,6 @@
     "client_id": "32108269805-41r18uv12i7ckqqo9ice7dr7jbe50qgp.apps.googleusercontent.com",
     "scopes": ["openid", "email", "profile"]
   },
-    "host_permissions": [
-      "*://*/*"
-    ],
     "background": {
         "service_worker": "background.js"
     },
@@ -22,6 +19,7 @@
       {
         "matches": ["https://chatgpt.com/*"],
         "js": ["dist/bundle.js"],
+        "css": ["dist/styles.css"],
         "run_at": "document_end"
       }
     ],
