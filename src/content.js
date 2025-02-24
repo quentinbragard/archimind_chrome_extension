@@ -4,7 +4,6 @@ import { saveChatToBackend } from './utils/saveChatToBackend.js';
 import { processChatGPTNewArticles } from './chatGPT/processChatGPTNewArticles.js';
 import { getChatTitleFromSidebar } from './utils/getChatTitleFromSidebar.js';
 
-
 import "./content-style.css";
 
 let chatHistoryData = {
@@ -34,9 +33,69 @@ async function init() {
   console.log("Ready to inject Archimind Button");
 
   injectArchimindButton(); // Add Archimind UI elements
+  injectStatsPanel();
   handleUrlChange();
   startMutationObserver();
   listenForUrlChanges();
+}
+
+function injectStatsPanel() {
+  console.log("Injecting Stats Panel...");
+
+  // Check if the panel already exists
+  if (document.getElementById("Archimind-stats-panel")) return;
+
+  // Create the stats panel div
+  const statsPanel = document.createElement("div");
+  statsPanel.id = "Archimind-stats-panel";
+  statsPanel.innerHTML = `
+      <div id="Archimind-stats-summary">
+          <div class="stat-item" data-detail="total-prompts">
+              <span class="stat-icon">💬</span> <span id="total-prompts">0</span>
+          </div>
+          <div class="stat-item" data-detail="average-score">
+              <span class="stat-icon">⭐</span> <span id="average-score">-</span><span class="stat-unit">/20</span>
+          </div>
+          <div class="stat-item" data-detail="efficiency">
+              <span class="stat-icon">⚡</span> <span id="efficiency">-</span><span class="stat-unit">kw/h</span>
+          </div>
+      </div>
+      <div id="Archimind-stats-details" class="hidden">
+          <div class="details-header">
+              <h3>📊 Détails des Statistiques</h3>
+              <button id="close-stats">×</button>
+          </div>
+          <div class="details-content">
+              <p><strong>Total Prompts:</strong> <span id="detail-total-prompts">0</span></p>
+              <p><strong>Average Score:</strong> <span id="detail-average-score">-</span>/20</p>
+              <p><strong>Efficiency:</strong> <span id="detail-efficiency">-</span>%</p>
+          </div>
+      </div>
+  `;
+
+  // Add the panel to the body
+  document.body.appendChild(statsPanel);
+
+  // Event listeners
+  const statsSummary = statsPanel.querySelector("#Archimind-stats-summary");
+  const statsDetails = statsPanel.querySelector("#Archimind-stats-details");
+  const closeButton = statsPanel.querySelector("#close-stats");
+
+  // Toggle details view when clicking on summary items
+  statsPanel.querySelectorAll(".stat-item").forEach(item => {
+    item.addEventListener("click", () => {
+      statsSummary.style.display = "none";
+      statsDetails.style.display = "block";
+    });
+  });
+
+  // Close details view
+  closeButton.addEventListener("click", () => {
+    statsSummary.style.display = "flex";
+    statsDetails.style.display = "none";
+  });
+
+  console.log("✅ Stats panel injected successfully");
 }
 
 /** Injects the Archimind floating button and popup modal */
@@ -47,6 +106,8 @@ function injectArchimindButton() {
   // Floating Button
   const button = document.createElement("button");
   button.id = "Archimind-extension-button";
+  button.setAttribute("aria-label", "Open Archimind");
+  button.innerHTML = `<span class="button-pulse"></span>`;
   document.body.appendChild(button);
 
   // Modal
@@ -55,23 +116,30 @@ function injectArchimindButton() {
   modal.classList.add("hidden");
   modal.innerHTML = `
     <div class="Archimind-modal-content">
-      <h2>Archimind Stats</h2>
-      <div>
-        <p>📊 Placeholder Stats: 120 prompts today</p>
-        <h3>📁 Files</h3>
+      <div class="modal-header">
+        <h2><span class="modal-icon">📊</span>Archimind Stats</h2>
+        <button id="close-Archimind-modal" class="header-close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="stat-summary">
+          <div class="stat-card">
+            <span class="stat-number">120</span>
+            <span class="stat-label">Prompts Today</span>
+          </div>
+        </div>
+        <h3><span class="section-icon">📁</span>Files</h3>
         <ul id="Archimind-file-list" class="features-list">
-          <li data-file="file1">Analysis Report</li>
-          <li data-file="file2">Daily Summary</li>
+          <li data-file="file1"><span class="item-icon">📄</span>Analysis Report</li>
+          <li data-file="file2"><span class="item-icon">📄</span>Daily Summary</li>
         </ul>
         <div id="Archimind-prompt-list" class="hidden">
-          <h3>💡 Prompts</h3>
+          <h3><span class="section-icon">💡</span>Prompts</h3>
           <ul>
-            <li>How to improve AI-generated text?</li>
-            <li>Best practices for prompting ChatGPT?</li>
+            <li><span class="item-icon">💬</span>How to improve AI-generated text?</li>
+            <li><span class="item-icon">💬</span>Best practices for prompting ChatGPT?</li>
           </ul>
         </div>
       </div>
-      <button id="close-Archimind-modal">Close</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -104,7 +172,8 @@ function injectArchimindButton() {
   });
 
   // Close Button
-  document.getElementById("close-Archimind-modal").addEventListener("click", () => {
+  document.getElementById("close-Archimind-modal").addEventListener("click", (e) => {
+    e.stopPropagation();
     isOpen = false;
     modal.classList.add("hidden");
   });
@@ -181,7 +250,6 @@ function handleUrlChange() {
   }
 }
 
-
 /**
  * Sets an interval to keep checking if the conversation's real title
  * has replaced "New Chat" (or is no longer missing).
@@ -239,7 +307,6 @@ function processNewArticleIfNotRunning(article) {
     });
 }
 
-
 function startMutationObserver() {
   if (observer) {
     observer.disconnect();
@@ -290,5 +357,3 @@ function listenForUrlChanges() {
     }
   }, 1000);
 }
-
-
