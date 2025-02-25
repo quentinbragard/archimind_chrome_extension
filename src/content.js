@@ -50,25 +50,14 @@ function injectStatsPanel() {
   statsPanel.id = "Archimind-stats-panel";
   statsPanel.innerHTML = `
       <div id="Archimind-stats-summary">
-          <div class="stat-item" data-detail="total-prompts">
+          <div class="stat-item" data-tooltip="Total number of prompts used in this session">
               <span class="stat-icon">💬</span> <span id="total-prompts">0</span>
           </div>
-          <div class="stat-item" data-detail="average-score">
+          <div class="stat-item" data-tooltip="Average quality score of your conversations">
               <span class="stat-icon">⭐</span> <span id="average-score">-</span><span class="stat-unit">/20</span>
           </div>
-          <div class="stat-item" data-detail="efficiency">
+          <div class="stat-item" data-tooltip="Energy efficiency of your AI usage">
               <span class="stat-icon">⚡</span> <span id="efficiency">-</span><span class="stat-unit">kw/h</span>
-          </div>
-      </div>
-      <div id="Archimind-stats-details" class="hidden">
-          <div class="details-header">
-              <h3>📊 Détails des Statistiques</h3>
-              <button id="close-stats">×</button>
-          </div>
-          <div class="details-content">
-              <p><strong>Total Prompts:</strong> <span id="detail-total-prompts">0</span></p>
-              <p><strong>Average Score:</strong> <span id="detail-average-score">-</span>/20</p>
-              <p><strong>Efficiency:</strong> <span id="detail-efficiency">-</span>%</p>
           </div>
       </div>
   `;
@@ -76,24 +65,7 @@ function injectStatsPanel() {
   // Add the panel to the body
   document.body.appendChild(statsPanel);
 
-  // Event listeners
-  const statsSummary = statsPanel.querySelector("#Archimind-stats-summary");
-  const statsDetails = statsPanel.querySelector("#Archimind-stats-details");
-  const closeButton = statsPanel.querySelector("#close-stats");
-
-  // Toggle details view when clicking on summary items
-  statsPanel.querySelectorAll(".stat-item").forEach(item => {
-    item.addEventListener("click", () => {
-      statsSummary.style.display = "none";
-      statsDetails.style.display = "block";
-    });
-  });
-
-  // Close details view
-  closeButton.addEventListener("click", () => {
-    statsSummary.style.display = "flex";
-    statsDetails.style.display = "none";
-  });
+  // No need for event listeners since we're using hover tooltips instead of clickable stats
 
   console.log("✅ Stats panel injected successfully");
 }

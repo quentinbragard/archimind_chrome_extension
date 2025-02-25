@@ -1,37 +1,37 @@
 import { getAuthToken } from './auth.js';
 
 /**
- * Saves chat details to the backend using OAuth authentication.
+ * Saves chat metadata (title, ID, provider) to the backend.
  */
-export function saveChatToBackend({chatId, chatTitle, providerName}) {
-    getAuthToken(async function(token) {
-      const payload = {
-        provider_chat_id: chatId,
-        title: chatTitle,
-        provider_name: providerName,
-      };
+export async function saveChatToBackend({ chatId, chatTitle, providerName }) {
+  try {
+    const token = await getAuthToken();
 
-      console.log("===========Auth Token:", token);
-  
-      console.log("Payload being sent to backend:", payload);
-  
-      fetch('https://archimind-backend-32108269805.europe-west1.run.app/save_chat', {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify(payload),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          console.log('Chat saved/updated successfully:', data.data);
-        } else {
-          console.error('Error saving chat:', data.error);
-        }
-      })
-      .catch(error => console.error('Error in saveChatToBackend:', error));
+    const payload = {
+      provider_chat_id: chatId,
+      title: chatTitle,
+      provider_name: providerName,
+    };
+
+    console.log("🔄 Sending chat payload:", payload);
+
+    const response = await fetch('http://127.0.0.1:8000/save/chat', {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+      console.warn(`⚠️ Failed request (${response.status}):`, await response.text());
+      throw new Error("Failed to save chat.");
+    }
+
+    const data = await response.json();
+    console.log("✅ Chat saved successfully:", data);
+  } catch (error) {
+    console.error("❌ Error in saveChatToBackend:", error);
   }
-  
+}
