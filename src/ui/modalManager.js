@@ -1,7 +1,8 @@
 import { renderNotifications } from './notificationsUI.js';
 import { renderTemplates } from './templatesUI.js';
 import { renderQuickActions } from './quickActionsUI.js';
-import { fetchPromptTemplates, fetchNotifications, fetchUserStats } from '../utils/statsManager.js';
+import { fetchPromptTemplates, fetchUserStats } from '../utils/statsManager.js';
+import { getNotifications } from '../features/notificationsManager.js';
 
 // Modal state
 let modalElement = null;
@@ -160,7 +161,7 @@ export async function refreshModalData() {
     // Fetch data in parallel
     const [templates, notifications, stats] = await Promise.all([
       fetchPromptTemplates(),
-      fetchNotifications(),
+      getNotifications(),
       fetchUserStats()
     ]);
     

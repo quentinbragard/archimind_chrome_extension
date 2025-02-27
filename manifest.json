@@ -19,7 +19,7 @@
       {
         "matches": ["https://chatgpt.com/*"],
         "js": ["dist/bundle.js"],
-        "css": ["dist/styles.css"],
+        "css": ["src/content-style.css"],
         "run_at": "document_end"
       }
     ],

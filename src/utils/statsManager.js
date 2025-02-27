@@ -171,33 +171,6 @@ export async function fetchPromptTemplates() {
     }
 }
 
-/**
- * Fetches user notifications
- * @returns {Promise<Array>} Array of notification objects
- */
-export async function fetchNotifications() {
-    try {
-        const token = await getAuthToken();
-        
-        const response = await fetch('http://127.0.0.1:8000/stats/notifications', {
-            method: 'GET',
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.notifications || [];
-    } catch (error) {
-        console.error("❌ Error fetching notifications:", error);
-        return [];
-    }
-}
 
 // Schedule regular updates
 let updateInterval = null;
