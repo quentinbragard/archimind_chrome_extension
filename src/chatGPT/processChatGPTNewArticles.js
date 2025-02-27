@@ -1,54 +1,91 @@
-import { waitForChatGPTCompleteMessage } from './waitForChatGPTCompleteMessage.js';
-import { getTurnNumber } from '../utils/getTurnNumber.js';
-import { trackThinkingTime } from '../utils/trackThinkingTime.js';
-import { saveMessageToBackend } from '../utils/saveMessageToBackend.js';
-import { getChatTitleFromSidebar } from '../utils/getChatTitleFromSidebar.js';
-import { saveChatToBackend } from '../utils/saveChatToBackend.js';
+import { waitForCompletedMessage, extractMessageId, extractUserMessage, extractAssistantMessage, getTurnNumber } from '../chat/chatHelpers.js';
+import { saveMessageToBackend } from '../utils/api.js';
+import { updateChatTitle, getChatHistoryData } from '../chat/chatHistoryManager.js';
+import { getChatTitleFromSidebar } from '../chat/chatHelpers.js';
+import { trackThinkingTime } from '../chat/thinkingTimeTracker.js';
+
 /**
  * Process a single conversation article (turn) in ChatGPT.
  *
- * @param {HTMLElement} article - The DOM element for this conversation turn (user or assistant).
- * @param {string} providerChatId - The ID of the chat in ChatGPT / your DB.
- * @param {number} lastProcessedTurn - The highest turn so far. 
- * @param {object} chatHistoryData - The current state of chat history data.
- * @returns {Promise<number>} - The new highest turn number processed.
+ * @param {HTMLElement} article - The DOM element for this conversation turn
+ * @param {string} providerChatId - The ID of the chat
+ * @param {number} lastProcessedTurn - The highest turn number processed so far
+ * @param {object} chatHistoryData - Current state of chat history data
+ * @returns {Promise<number>} - The new highest turn number processed
  */
 export async function processChatGPTNewArticles(article, providerChatId, lastProcessedTurn, chatHistoryData) {
-  console.log('[ChatGPT Extension] Processing new article:', article);
-  const turnNumber = getTurnNumber(article);
-  if (turnNumber == null) return lastProcessedTurn;
+  try {
+    console.log('[Archimind] Processing article:', article);
+    
+    // Get turn number for this article
+    const turnNumber = getTurnNumber(article);
+    if (turnNumber === null) {
+      console.log('[Archimind] No turn number found, skipping');
+      return lastProcessedTurn;
+    }
+    
+    // Determine if it's a user or assistant message
+    const isUserMessage = !!article.querySelector('div[data-message-author-role="user"]');
+    const isAssistantMessage = !!article.querySelector('div[data-message-author-role="assistant"]');
+    
+    if (isUserMessage) {
+      return await processUserMessage(article, turnNumber, providerChatId, chatHistoryData);
+    } else if (isAssistantMessage) {
+      return await processAssistantMessage(article, turnNumber, providerChatId, chatHistoryData);
+    }
+    
+    return lastProcessedTurn;
+  } catch (error) {
+    console.error('[Archimind] Error processing article:', error);
+    return lastProcessedTurn;
+  }
+}
 
-  // Check if it's user or assistant.
-  const userMessageDiv = article.querySelector('div[data-message-author-role="user"]');
-  const assistantMessageDiv = article.querySelector('div[data-message-author-role="assistant"]');
-
-  if (userMessageDiv) {
-    console.log("We are processing a user message");
-    // A user message
-    const userMessageId = userMessageDiv.getAttribute('data-message-id');
-    const userMessageText = userMessageDiv.innerText.trim();
-    console.log("message text", userMessageText);
-
-    // 1) Store the user message
+/**
+ * Process a user message from the conversation
+ * 
+ * @param {HTMLElement} article - The article element containing the user message
+ * @param {number} turnNumber - Turn number for this message
+ * @param {string} providerChatId - The chat ID
+ * @param {object} chatHistoryData - Current chat history data
+ * @returns {Promise<number>} - Updated last processed turn
+ */
+async function processUserMessage(article, turnNumber, providerChatId, chatHistoryData) {
+  try {
+    console.log('[Archimind] Processing user message');
+    
+    // Extract message data
+    const messageId = extractMessageId(article, 'user');
+    const messageText = extractUserMessage(article);
+    
+    if (!messageId || !messageText) {
+      console.warn('[Archimind] Invalid user message data, skipping');
+      return turnNumber;
+    }
+    
+    // Save the user message
     await saveMessageToBackend({
       role: 'user',
-      message: userMessageText,
-      rank: turnNumber - 1,   // or turnNumber - 1 if you still want offset
-      messageId: userMessageId,
+      message: messageText,
+      rank: turnNumber - 1,
+      messageId: messageId,
       providerChatId,
     });
-    console.log("user message stored");
-    console.log("===============================================");
-    // 2) Wait for the assistant message to appear (turnNumber+1)
-    console.log("Waiting for assistant message to appear...");
+    
+    console.log('[Archimind] User message stored');
+    
+    // Wait for the assistant response (next turn)
+    console.log('[Archimind] Waiting for assistant response...');
     const nextTurnNumber = turnNumber + 1;
-    const assistantElement = await waitForChatGPTCompleteMessage(nextTurnNumber);
+    const assistantElement = await waitForCompletedMessage(nextTurnNumber);
+    
     if (assistantElement) {
       const thinkingTime = await trackThinkingTime();
       const assistantMsgId = assistantElement.getAttribute('data-message-id');
       const assistantMsgText = assistantElement.innerText.trim();
-      console.log("After user message we have waited and stored the assistant answer", assistantMsgText);
-
+      
+      console.log('[Archimind] Assistant response received, storing...');
+      
       await saveMessageToBackend({
         role: 'assistant',
         message: assistantMsgText,
@@ -57,34 +94,49 @@ export async function processChatGPTNewArticles(article, providerChatId, lastPro
         providerChatId,
         thinkingTime,
       });
-      console.log("assistant message stored");
-
+      
+      console.log('[Archimind] Assistant message stored');
+      
       // Check if the chat title has changed
-      const currentTitle = getChatTitleFromSidebar(providerChatId);
-      if (currentTitle && currentTitle !== chatHistoryData.savedChatName) {
-        console.log('[ChatGPT Extension] Chat title has changed:', currentTitle);
-        saveChatToBackend({ chatId: providerChatId, chatTitle: currentTitle, providerName: 'chatGPT' });
-        chatHistoryData.savedChatName = currentTitle;
-      }
-
+      checkAndUpdateChatTitle(providerChatId, chatHistoryData);
+      
       return nextTurnNumber;
     }
-    // If no assistant found, just return turnNumber
+    
+    // If no assistant found, just return the current turn
     return turnNumber;
+  } catch (error) {
+    console.error('[Archimind] Error processing user message:', error);
+    return turnNumber;
+  }
+}
 
-  } else if (assistantMessageDiv) {
-    console.log("!!!!!!!!!!!!!!! We are starting by processing an assistant message");
-    // If it is an assistant message that appears on its own,
-    // it means we did NOT just see a brand-new user message in this pass. 
-    // For instance: page reloaded, or some partial load scenario. 
-    // We handle it once (if not processed) so we do NOT store the preceding user message again.
-
-    const assistantMsgId = assistantMessageDiv.getAttribute('data-message-id');
-    const assistantMsgText = assistantMessageDiv.innerText.trim();
-    console.log("Processing ASSISTANT message:", assistantMsgText);
-    console.log("turn number", turnNumber);
-
+/**
+ * Process an assistant message from the conversation
+ * 
+ * @param {HTMLElement} article - The article element containing the assistant message
+ * @param {number} turnNumber - Turn number for this message
+ * @param {string} providerChatId - The chat ID
+ * @param {object} chatHistoryData - Current chat history data
+ * @returns {Promise<number>} - Updated last processed turn
+ */
+async function processAssistantMessage(article, turnNumber, providerChatId, chatHistoryData) {
+  try {
+    console.log('[Archimind] Processing assistant message');
+    
+    // Extract message data
+    const assistantMsgId = extractMessageId(article, 'assistant');
+    const assistantMsgText = extractAssistantMessage(article);
+    
+    if (!assistantMsgId || !assistantMsgText) {
+      console.warn('[Archimind] Invalid assistant message data, skipping');
+      return turnNumber;
+    }
+    
+    // Get thinking time
     const thinkingTime = await trackThinkingTime();
+    
+    // Save the assistant message
     await saveMessageToBackend({
       role: 'assistant',
       message: assistantMsgText,
@@ -93,17 +145,36 @@ export async function processChatGPTNewArticles(article, providerChatId, lastPro
       providerChatId,
       thinkingTime,
     });
-
+    
+    console.log('[Archimind] Assistant message stored');
+    
     // Check if the chat title has changed
-    const currentTitle = getChatTitleFromSidebar(providerChatId);
-    if (currentTitle && currentTitle !== chatHistoryData.savedChatName) {
-      console.log('[ChatGPT Extension] Chat title has changed:', currentTitle);
-      saveChatToBackend({ chatId: providerChatId, chatTitle: currentTitle, providerName: 'chatGPT' });
-      chatHistoryData.savedChatName = currentTitle;
-    }
-
+    checkAndUpdateChatTitle(providerChatId, chatHistoryData);
+    
+    return turnNumber;
+  } catch (error) {
+    console.error('[Archimind] Error processing assistant message:', error);
     return turnNumber;
   }
+}
 
-  return lastProcessedTurn;
+/**
+ * Check if the chat title has changed and update if needed
+ * 
+ * @param {string} chatId - The chat ID
+ * @param {object} chatHistoryData - Current chat history data
+ */
+function checkAndUpdateChatTitle(chatId, chatHistoryData) {
+  try {
+    const currentTitle = getChatTitleFromSidebar(chatId);
+    
+    if (currentTitle && 
+        currentTitle !== 'New Chat' && 
+        currentTitle !== chatHistoryData.savedChatName) {
+      console.log('[Archimind] Chat title has changed:', currentTitle);
+      updateChatTitle(currentTitle);
+    }
+  } catch (error) {
+    console.error('[Archimind] Error checking/updating chat title:', error);
+  }
 }

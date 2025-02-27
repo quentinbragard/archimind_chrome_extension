@@ -1,4 +1,4 @@
-import { getAuthToken } from './auth.js';
+import { getAuthToken } from '../utils/auth.js';
 
 /**
  * Class to handle prompt enhancement functionality
