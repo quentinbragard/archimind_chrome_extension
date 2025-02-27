@@ -6,6 +6,8 @@ import { injectStatsPanel } from '../ui/statsPanel.js';
 import { injectMainButton } from '../ui/mainButton.js';
 import { startStatsUpdates } from '../utils/statsManager.js';
 import { PromptEnhancer } from '../features/promptEnhancer.js';
+import { initNotificationsManager } from '../features/notificationsManager.js';
+import { injectModal } from '../ui/modalManager.js';
 
 // Global state
 let isInitialized = false;
@@ -36,6 +38,7 @@ export async function initialize() {
     // Initialize UI components
     injectStatsPanel();
     injectMainButton();
+    injectModal();
     
     // Initialize chat functionality
     initializeChatHistory();
@@ -50,6 +53,15 @@ export async function initialize() {
     // Initialize prompt enhancer
     promptEnhancer = new PromptEnhancer();
     promptEnhancer.init();
+    
+    // Initialize notification manager
+    try {
+      await initNotificationsManager();
+      console.log('✅ Notification manager initialized successfully');
+    } catch (notifError) {
+      console.error('⚠️ Error initializing notification manager:', notifError);
+      // Continue with initialization even if notification manager fails
+    }
     
     // Set initialization flag
     isInitialized = true;

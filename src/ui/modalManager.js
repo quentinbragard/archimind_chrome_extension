@@ -2,6 +2,7 @@ import { renderNotifications } from './notificationsUI.js';
 import { renderTemplates } from './templatesUI.js';
 import { renderQuickActions } from './quickActionsUI.js';
 import { fetchPromptTemplates, fetchUserStats } from '../utils/statsManager.js';
+import { fetchNotifications } from '../utils/api.js';
 import { getNotifications } from '../features/notificationsManager.js';
 
 // Modal state
@@ -68,6 +69,11 @@ export function injectModal() {
   
   // Add event listeners
   setupModalEventListeners();
+  
+  // Listen for refresh event
+  document.addEventListener('archimind:refresh-modal', () => {
+    refreshModalData();
+  });
   
   console.log("✅ Modal injected successfully");
 }
@@ -158,24 +164,42 @@ function resetListAnimations() {
  */
 export async function refreshModalData() {
   try {
+    console.log("🔄 Refreshing modal data...");
+    
     // Fetch data in parallel
-    const [templates, notifications, stats] = await Promise.all([
+    const [templates, stats] = await Promise.all([
       fetchPromptTemplates(),
-      getNotifications(),
       fetchUserStats()
     ]);
     
+    // Get notifications from the notificationsManager cache to avoid duplicate fetching
+    const notifications = getNotifications();
+    
+    console.log("✅ Data fetched successfully:", {
+      templatesCount: templates ? templates.length : 0,
+      notificationsCount: notifications ? notifications.length : 0,
+      statsReceived: !!stats
+    });
+    
     // Update modal sections
-    renderNotifications(notifications);
-    renderTemplates(templates);
+    renderNotifications(notifications || []);
+    renderTemplates(templates || []);
     renderQuickActions();
     
     // Update modal stats
-    updateModalStats(stats);
+    updateModalStats(stats || {});
     
     console.log("🔄 Modal data refreshed successfully");
   } catch (error) {
     console.error("❌ Error refreshing modal data:", error);
+    // Attempt to render available data even if some fetches failed
+    try {
+      renderNotifications([]);
+      renderTemplates([]);
+      renderQuickActions();
+    } catch (renderError) {
+      console.error("❌ Critical error rendering UI:", renderError);
+    }
   }
 }
 

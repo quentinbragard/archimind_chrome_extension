@@ -7,7 +7,10 @@ import { formatTime } from '../utils/domUtils.js';
  */
 export function renderNotifications(notifications) {
     const notificationsList = document.getElementById('notifications-list');
-    if (!notificationsList) return;
+    if (!notificationsList) {
+        console.error('❌ Notifications list element not found');
+        return;
+    }
     
     // Clear existing notifications
     notificationsList.innerHTML = '';
@@ -50,6 +53,12 @@ export function renderNotifications(notifications) {
  * @returns {HTMLElement} Notification list item
  */
 function createNotificationItem(notification, index) {
+    // Check if notification is valid
+    if (!notification || !notification.id) {
+        console.error('❌ Invalid notification object', notification);
+        return document.createElement('li');
+    }
+    
     const listItem = document.createElement('li');
     listItem.className = 'notification-item';
     if (notification.read_at) {
@@ -57,7 +66,7 @@ function createNotificationItem(notification, index) {
     }
     
     listItem.setAttribute('data-notification-id', notification.id);
-    listItem.setAttribute('data-notification-type', notification.type);
+    listItem.setAttribute('data-notification-type', notification.type || 'default');
     listItem.style.setProperty('--item-index', index);
     
     // Add notification content
@@ -65,8 +74,8 @@ function createNotificationItem(notification, index) {
         <div class="notification-content">
             <span class="notification-icon">${getNotificationIcon(notification.type)}</span>
             <div class="notification-text">
-                <span class="notification-title">${notification.title}</span>
-                <span class="notification-body">${notification.body}</span>
+                <span class="notification-title">${notification.title || 'Notification'}</span>
+                <span class="notification-body">${notification.body || ''}</span>
                 ${notification.action_button ? 
                     `<button class="notification-action-button">${notification.action_button}</button>` : ''}
             </div>
@@ -306,6 +315,74 @@ function ensureNotificationStyles() {
                 transform: translateX(0);
             }
         }
+        
+        /* Toast notification styles */
+        #archimind-toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .archimind-toast {
+            background: white;
+            border-left: 4px solid #1C4DEB;
+            padding: 12px 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            max-width: 300px;
+            animation: toast-in 0.3s ease forwards;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .archimind-toast.closing {
+            animation: toast-out 0.3s ease forwards;
+        }
+        
+        .archimind-toast-icon {
+            font-size: 18px;
+        }
+        
+        .archimind-toast-content {
+            flex: 1;
+        }
+        
+        .archimind-toast-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+        
+        .archimind-toast-message {
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .archimind-toast-close {
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+        }
+        
+        .archimind-toast-close:hover {
+            opacity: 1;
+        }
+        
+        @keyframes toast-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes toast-out {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
     `;
     
     document.head.appendChild(style);
@@ -328,8 +405,6 @@ function getNotificationIcon(type) {
     
     return 'ℹ️';
 }
-
-
 
 /**
  * Appends an empty state message to a list
@@ -358,78 +433,6 @@ export function showToastNotification(notification, duration = 5000) {
         toastContainer = document.createElement('div');
         toastContainer.id = 'archimind-toast-container';
         document.body.appendChild(toastContainer);
-        
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = `
-            #archimind-toast-container {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 10000;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .archimind-toast {
-                background: white;
-                border-left: 4px solid #1C4DEB;
-                padding: 12px 15px;
-                border-radius: 6px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                max-width: 300px;
-                animation: toast-in 0.3s ease forwards;
-                display: flex;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .archimind-toast.closing {
-                animation: toast-out 0.3s ease forwards;
-            }
-            
-            .archimind-toast-icon {
-                font-size: 18px;
-            }
-            
-            .archimind-toast-content {
-                flex: 1;
-            }
-            
-            .archimind-toast-title {
-                font-weight: 600;
-                font-size: 14px;
-                margin-bottom: 3px;
-            }
-            
-            .archimind-toast-message {
-                font-size: 13px;
-                color: #555;
-            }
-            
-            .archimind-toast-close {
-                cursor: pointer;
-                font-size: 16px;
-                opacity: 0.6;
-                transition: opacity 0.2s ease;
-            }
-            
-            .archimind-toast-close:hover {
-                opacity: 1;
-            }
-            
-            @keyframes toast-in {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            @keyframes toast-out {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
     }
     
     // Create toast element

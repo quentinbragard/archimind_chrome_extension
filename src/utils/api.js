@@ -107,7 +107,13 @@ export async function saveMessageToBackend(messageData) {
  * @returns {Promise<Array>} Notifications array
  */
 export async function fetchNotifications() {
-    return apiRequest('/notifications');
+    try {
+        const response = await apiRequest('/notifications/');
+        return response || [];
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        return [];  // Return empty array instead of throwing to avoid breaking the UI
+    }
 }
 
 /**
@@ -115,7 +121,13 @@ export async function fetchNotifications() {
  * @returns {Promise<Array>} Unread notifications array
  */
 export async function fetchUnreadNotifications() {
-    return apiRequest('/notifications/unread');
+    try {
+        const response = await apiRequest('/notifications/unread');
+        return response || [];
+    } catch (error) {
+        console.error('Error fetching unread notifications:', error);
+        return [];  // Return empty array instead of throwing
+    }
 }
 
 /**
@@ -123,7 +135,13 @@ export async function fetchUnreadNotifications() {
  * @returns {Promise<Object>} Counts object with total and unread properties
  */
 export async function getNotificationCounts() {
-    return apiRequest('/notifications/count');
+    try {
+        const response = await apiRequest('/notifications/count');
+        return response || { total: 0, unread: 0 };
+    } catch (error) {
+        console.error('Error fetching notification counts:', error);
+        return { total: 0, unread: 0 };
+    }
 }
 
 /**
@@ -132,9 +150,20 @@ export async function getNotificationCounts() {
  * @returns {Promise<Object>} Response data
  */
 export async function markNotificationRead(notificationId) {
-    return apiRequest(`/notifications/${notificationId}/read`, {
-        method: 'POST'
-    });
+    if (!notificationId) {
+        console.error('Missing notification ID');
+        return { success: false, error: 'Missing notification ID' };
+    }
+    
+    try {
+        const response = await apiRequest(`/notifications/${notificationId}/read`, {
+            method: 'POST'
+        });
+        return response;
+    } catch (error) {
+        console.error(`Error marking notification ${notificationId} as read:`, error);
+        throw error;
+    }
 }
 
 /**
@@ -142,9 +171,15 @@ export async function markNotificationRead(notificationId) {
  * @returns {Promise<Object>} Response data
  */
 export async function markAllNotificationsRead() {
-    return apiRequest('/notifications/read-all', {
-        method: 'POST'
-    });
+    try {
+        const response = await apiRequest('/notifications/read-all', {
+            method: 'POST'
+        });
+        return response;
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        throw error;
+    }
 }
 
 // Stats and Template API functions...
@@ -154,7 +189,12 @@ export async function markAllNotificationsRead() {
  * @returns {Promise<Object>} User stats
  */
 export async function fetchUserStats() {
-    return apiRequest('/stats/user');
+    try {
+        return await apiRequest('/stats/user');
+    } catch (error) {
+        console.error('Error fetching user stats:', error);
+        return null;
+    }
 }
 
 /**
@@ -162,8 +202,13 @@ export async function fetchUserStats() {
  * @returns {Promise<Array>} Templates array
  */
 export async function fetchPromptTemplates() {
-    const response = await apiRequest('/stats/templates');
-    return response.templates || [];
+    try {
+        const response = await apiRequest('/stats/templates');
+        return response.templates || [];
+    } catch (error) {
+        console.error('Error fetching templates:', error);
+        return [];
+    }
 }
 
 // Prompt enhancement API functions...

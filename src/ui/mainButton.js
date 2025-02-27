@@ -1,5 +1,4 @@
-import { toggleModal } from './modalManager.js';
-import { refreshModalData } from './modalManager.js';
+import { toggleModal, refreshModalData } from './modalManager.js';
 
 // Track button state
 let buttonElement = null;

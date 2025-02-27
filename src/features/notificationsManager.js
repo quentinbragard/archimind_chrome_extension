@@ -1,5 +1,4 @@
-import { markNotificationRead, markAllNotificationsRead } from '../utils/api.js';
-import { refreshModalData } from '../ui/modalManager.js';
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '../utils/api.js';
 import { showToastNotification } from '../ui/notificationsUI.js';
 import { updateButton } from '../ui/mainButton.js';
 
@@ -34,7 +33,7 @@ export async function initNotificationsManager() {
  */
 export async function refreshNotifications() {
     try {
-        const notifications = await getNotifications();
+        const notifications = await fetchNotifications();
         notificationsCache = notifications || [];
         
         // Update the main button badge to show unread count
@@ -147,7 +146,10 @@ export async function handleNotificationAction(notificationId) {
         default:
             // Default action is to open the modal if there's no specific action
             if (notification.action_button) {
-                refreshModalData();
+                // Instead of directly calling refreshModalData which may create circular dependencies,
+                // we'll use a DOM event to trigger it
+                const event = new CustomEvent('archimind:refresh-modal');
+                document.dispatchEvent(event);
             }
     }
 }
@@ -188,8 +190,9 @@ export async function markNotificationAsRead(notificationId) {
         
         console.log('✅ Notification marked as read:', notificationId);
         
-        // Refresh modal data to get updated list
-        refreshModalData();
+        // Refresh modal data by triggering an event
+        const event = new CustomEvent('archimind:refresh-modal');
+        document.dispatchEvent(event);
         
         return true;
     } catch (error) {
@@ -230,8 +233,9 @@ export async function markAllNotificationsAsRead() {
             type: 'success'
         });
         
-        // Refresh modal data
-        refreshModalData();
+        // Refresh modal data by triggering an event
+        const event = new CustomEvent('archimind:refresh-modal');
+        document.dispatchEvent(event);
         
         return true;
     } catch (error) {
