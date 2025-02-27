@@ -21,7 +21,7 @@ export function renderNotifications(notifications) {
         const headerContainer = document.createElement('div');
         headerContainer.className = 'notifications-header';
         headerContainer.innerHTML = `
-            <div class="notifications-count">${notifications.length} notification${notifications.length !== 1 ? 's' : ''}</div>
+            <div class="notifications-count">${notifications.length} unread notification${notifications.length !== 1 ? 's' : ''}</div>
             <button id="clear-all-notifications" class="clear-all-button">Mark all as read</button>
         `;
         notificationsList.appendChild(headerContainer);
@@ -39,7 +39,7 @@ export function renderNotifications(notifications) {
             notificationsList.appendChild(listItem);
         });
     } else {
-        appendEmptyState(notificationsList, 'No notifications');
+        appendEmptyState(notificationsList, 'No unread notifications');
     }
     
     // Add notification styles if they don't exist

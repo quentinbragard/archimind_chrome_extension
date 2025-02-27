@@ -172,8 +172,8 @@ export async function refreshModalData() {
       fetchUserStats()
     ]);
     
-    // Get notifications from the notificationsManager cache to avoid duplicate fetching
-    const notifications = getNotifications();
+    // Get only unread notifications
+    const notifications = getNotifications({ unreadOnly: true });
     
     console.log("✅ Data fetched successfully:", {
       templatesCount: templates ? templates.length : 0,

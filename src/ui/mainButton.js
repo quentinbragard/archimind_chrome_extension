@@ -53,6 +53,7 @@ function handleButtonClick(event) {
  * @param {Object} options - Button options
  * @param {boolean} options.pulse - Whether to show the pulse animation
  * @param {string} options.notification - Text to show in a notification badge
+ * @param {boolean} options.important - Whether this is an important notification
  */
 export function updateButton(options = {}) {
   if (!buttonElement) return;
@@ -81,6 +82,13 @@ export function updateButton(options = {}) {
     // Update badge text
     badgeElement.textContent = options.notification;
     badgeElement.style.display = '';
+    
+    // Add important class if needed
+    if (options.important) {
+      badgeElement.classList.add('important');
+    } else {
+      badgeElement.classList.remove('important');
+    }
   } else if (badgeElement) {
     // Hide badge if no notification
     badgeElement.style.display = 'none';

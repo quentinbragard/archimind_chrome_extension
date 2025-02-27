@@ -33,13 +33,23 @@ export async function initNotificationsManager() {
  */
 export async function refreshNotifications() {
     try {
+        const prevUnreadCount = getUnreadCount();
         const notifications = await fetchNotifications();
         notificationsCache = notifications || [];
         
         // Update the main button badge to show unread count
+        const newUnreadCount = getUnreadCount();
         updateNotificationBadge();
         
-        console.log(`✅ Fetched ${notifications.length} notifications (${getUnreadCount()} unread)`);
+        // Add pulse effect when new notifications arrive
+        if (newUnreadCount > prevUnreadCount) {
+            updateButton({
+                notification: newUnreadCount.toString(),
+                pulse: true
+            });
+        }
+        
+        console.log(`✅ Fetched ${notifications.length} notifications (${newUnreadCount} unread)`);
         
         return notifications;
     } catch (error) {
@@ -51,6 +61,7 @@ export async function refreshNotifications() {
 /**
  * Starts polling for new notifications
  */
+
 export function startNotificationPolling() {
     if (isPollingActive) return;
     
@@ -59,12 +70,24 @@ export function startNotificationPolling() {
     isPollingActive = true;
     pollingInterval = setInterval(async () => {
         const currentUnreadCount = getUnreadCount();
+        const previousNotifications = [...notificationsCache]; // Save current state
+        
         await refreshNotifications();
         
         // If we have new unread notifications, show a toast
         const newUnreadCount = getUnreadCount();
         if (newUnreadCount > currentUnreadCount) {
             const newCount = newUnreadCount - currentUnreadCount;
+            
+            // Add animation to the badge
+            const badgeElement = document.querySelector('.notification-badge');
+            if (badgeElement) {
+                badgeElement.style.animation = 'none';
+                setTimeout(() => {
+                    badgeElement.style.animation = 'badge-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                }, 10);
+            }
+            
             showToastNotification({
                 title: `${newCount} New Notification${newCount > 1 ? 's' : ''}`,
                 message: 'Click to view your notifications',
@@ -73,7 +96,6 @@ export function startNotificationPolling() {
         }
     }, POLLING_INTERVAL);
 }
-
 /**
  * Stops polling for new notifications
  */
@@ -172,6 +194,7 @@ function showInsightDetails(notification) {
  * Mark a notification as read
  * @param {string} notificationId - Notification ID
  */
+
 export async function markNotificationAsRead(notificationId) {
     if (!notificationId) return;
     
@@ -184,6 +207,16 @@ export async function markNotificationAsRead(notificationId) {
         const now = new Date().toISOString();
         notificationsCache[index].read_at = now;
         updateNotificationBadge();
+        
+        // Update UI directly for immediate visual feedback
+        const notificationItem = document.querySelector(`li[data-notification-id="${notificationId}"]`);
+        if (notificationItem) {
+            notificationItem.classList.add('read');
+            
+            // Optional: Add a transition effect
+            notificationItem.style.transition = 'opacity 0.3s ease, background-color 0.3s ease';
+            notificationItem.style.opacity = '0.7';
+        }
         
         // Send to backend
         await markNotificationRead(notificationId);
