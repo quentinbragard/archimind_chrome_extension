@@ -33,17 +33,16 @@ function createTemplateItem(template, index) {
   listItem.setAttribute('data-template-id', template.id);
   listItem.style.setProperty('--item-index', index);
   
-  // Add metadata as data attributes
-  listItem.dataset.templateName = template.name;
-  listItem.dataset.templateDescription = template.description || '';
+  // Extract a name from the first line or first few words of content
+  const templateName = extractTemplateName(template.content);
   
   // Create the template item content
   listItem.innerHTML = `
     <div class="template-item-content">
       <span class="item-icon">💬</span>
       <div class="template-text">
-        <span class="template-name">${template.name}</span>
-        ${template.description ? `<span class="template-description">${truncateText(template.description, 60)}</span>` : ''}
+        <span class="template-name">${templateName}</span>
+        <span class="template-description">${truncateText(template.content, 60)}</span>
       </div>
     </div>
     <div class="template-actions">
@@ -76,6 +75,27 @@ function createTemplateItem(template, index) {
 }
 
 /**
+ * Extract a display name from template content
+ * @param {string} content - Template content
+ * @returns {string} Extracted name
+ */
+function extractTemplateName(content) {
+  if (!content) return "Untitled Template";
+  
+  // Try to get the first line (which often contains a role or purpose)
+  const firstLine = content.split('\n')[0].trim();
+  
+  // If first line is short enough, use it as is
+  if (firstLine.length <= 40) {
+    return firstLine;
+  }
+  
+  // Otherwise, take the first few words that might identify the template
+  const words = firstLine.split(' ');
+  return words.slice(0, 4).join(' ') + '...';
+}
+
+/**
  * Shows a preview modal for a template
  * @param {Object} template - Template object
  */
@@ -91,14 +111,16 @@ function showTemplatePreview(template) {
   previewModal.id = 'template-preview-modal';
   previewModal.className = 'template-preview-modal';
   
+  // Extract a name for display
+  const templateName = extractTemplateName(template.content);
+  
   previewModal.innerHTML = `
     <div class="template-preview-content">
       <div class="template-preview-header">
-        <h3>${template.name}</h3>
+        <h3>${templateName}</h3>
         <button class="template-preview-close">×</button>
       </div>
       <div class="template-preview-body">
-        <p class="template-preview-description">${template.description || 'No description provided.'}</p>
         <div class="template-preview-text">${template.content}</div>
       </div>
       <div class="template-preview-footer">

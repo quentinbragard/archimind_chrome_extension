@@ -53,23 +53,31 @@ export function useTemplate(template) {
 /**
  * Saves a new template
  * @param {Object} templateData - Template data
- * @param {string} templateData.name - Template name
+ * @param {string} templateData.name - Template name (will be stored in the content field)
  * @param {string} templateData.content - Template content
- * @param {string} templateData.description - Template description (optional)
+ * @param {string} templateData.folder - Template folder (optional)
  * @returns {Promise<Object>} Saved template
  */
 export async function createTemplate(templateData) {
-  if (!templateData.name || !templateData.content) {
-    throw new Error('Template name and content are required');
+  if (!templateData.content) {
+    throw new Error('Template content is required');
   }
   
   try {
-    const savedTemplate = await saveTemplate(templateData);
+    // Format the template data to match the database structure
+    const formattedData = {
+      content: templateData.content,
+      folder: templateData.folder || null,
+      // We don't need to send id, created_at or user_id
+      // as those will be handled by the backend
+    };
+    
+    const savedTemplate = await saveTemplate(formattedData);
     
     // Show success notification
     showToastNotification({
       title: 'Template Saved',
-      message: `"${templateData.name}" has been saved to your templates.`,
+      message: `Your template has been saved successfully.`,
       type: 'success'
     });
     

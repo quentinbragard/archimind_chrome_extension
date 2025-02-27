@@ -233,7 +233,10 @@ export async function enhancePrompt(promptData) {
 export async function saveTemplate(templateData) {
     const response = await apiRequest('/prompt-generator/save-template', {
         method: 'POST',
-        body: JSON.stringify(templateData)
+        body: JSON.stringify({
+            content: templateData.content,
+            folder: templateData.folder || null
+        })
     });
     
     return response.template || response;

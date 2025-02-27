@@ -509,17 +509,6 @@ export class PromptEnhancer {
     async saveAsTemplate() {
         if (!this.enhancedPrompt) return;
         
-        const nameEl = document.getElementById('template-name');
-        const descriptionEl = document.getElementById('template-description');
-        
-        const name = nameEl.value.trim();
-        const description = descriptionEl.value.trim();
-        
-        if (!name) {
-            alert('Please provide a name for your template.');
-            return;
-        }
-        
         try {
             const token = await getAuthToken();
             
@@ -530,9 +519,8 @@ export class PromptEnhancer {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    name,
                     content: this.enhancedPrompt,
-                    description: description || null
+                    folder: null
                 })
             });
             
@@ -546,7 +534,7 @@ export class PromptEnhancer {
             // Provide visual feedback that it was saved
             const promptEl = this.enhancerPanel.querySelector('.enhanced-prompt');
             const originalText = promptEl.textContent;
-            promptEl.textContent = `✅ Template saved as "${name}"`;
+            promptEl.textContent = `✅ Template saved successfully!`;
             
             // Restore original text after feedback
             setTimeout(() => {
