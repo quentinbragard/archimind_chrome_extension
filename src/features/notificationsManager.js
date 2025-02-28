@@ -1,6 +1,6 @@
-import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '../utils/api.js';
-import { showToastNotification } from '../ui/notificationsUI.js';
-import { updateButton } from '../ui/mainButton.js';
+import { services } from '../services/ServiceLocator.js';
+import { showToastNotification } from '../ui/mainModal/notificationsUI.js';
+import { updateButton } from '../ui/mainButton/mainButton.js';
 
 // In-memory cache for notifications
 let notificationsCache = [];
@@ -34,7 +34,7 @@ export async function initNotificationsManager() {
 export async function refreshNotifications() {
     try {
         const prevUnreadCount = getUnreadCount();
-        const notifications = await fetchNotifications();
+        const notifications = await services.api.fetchNotifications();
         notificationsCache = notifications || [];
         
         // Update the main button badge to show unread count
@@ -219,7 +219,7 @@ export async function markNotificationAsRead(notificationId) {
         }
         
         // Send to backend
-        await markNotificationRead(notificationId);
+        await services.api.markNotificationRead(notificationId);
         
         console.log('✅ Notification marked as read:', notificationId);
         
@@ -255,7 +255,7 @@ export async function markAllNotificationsAsRead() {
         updateNotificationBadge();
         
         // Send to backend
-        await markAllNotificationsRead();
+        await services.api.markAllNotificationsRead();
         
         console.log(`✅ Marked ${unreadCount} notifications as read`);
         

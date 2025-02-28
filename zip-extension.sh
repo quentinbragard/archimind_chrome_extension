@@ -10,7 +10,7 @@ rm -f $ZIP_FILE
 INCLUDE=(
     manifest.json
     background.js
-    popup.html
+    src/popup.html
     popup.js
     welcome.html
     welcome.js

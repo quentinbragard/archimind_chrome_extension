@@ -1,9 +1,6 @@
-import { 
-  createTemplate, updateTemplate, deleteTemplate, 
-  fetchUserTemplates, fetchOfficialTemplates, saveTemplate, trackTemplateUsage 
-} from '../utils/api.js';
-import { closeModal, refreshModalData } from '../ui/modalManager.js';
-import { showToastNotification } from '../ui/notificationsUI.js';
+import { services } from '../services/ServiceLocator.js';
+import { closeModal, refreshModalData } from '../ui/mainModal/modalManager.js';
+import { showToastNotification } from '../ui/mainModal/notificationsUI.js';
 
 /**
  * Uses a prompt template by inserting it into the ChatGPT input area
@@ -33,7 +30,7 @@ export function useTemplate(template) {
   
   // Track template usage
   if (template.id) {
-    trackTemplateUsage(template.id)
+    services.api.trackTemplateUsage(template.id)
       .then(() => {
         console.log('✅ Template usage tracked:', template.id);
       })
@@ -59,7 +56,7 @@ export function useTemplate(template) {
  */
 export async function getUserTemplates() {
   try {
-    return await fetchUserTemplates();
+    return await services.api.fetchUserTemplates();
   } catch (error) {
     console.error('Error getting user templates:', error);
     return { templates: [], folders: [], templates_by_folder: {} };
@@ -72,7 +69,7 @@ export async function getUserTemplates() {
  */
 export async function getOfficialTemplates() {
   try {
-    return await fetchOfficialTemplates();
+    return await services.api.fetchOfficialTemplates();
   } catch (error) {
     console.error('Error getting official templates:', error);
     return { templates: [], categories: {} };
@@ -86,7 +83,7 @@ export async function getOfficialTemplates() {
  */
 export async function createNewTemplate(templateData) {
   try {
-    const response = await createTemplate(templateData);
+    const response = await services.api.createTemplate(templateData);
     
     if (response.success) {
       showToastNotification({
@@ -123,7 +120,7 @@ export async function createNewTemplate(templateData) {
  */
 export async function updateExistingTemplate(templateId, templateData) {
   try {
-    const response = await updateTemplate(templateId, templateData);
+    const response = await services.api.updateTemplate(templateId, templateData);
     
     if (response.success) {
       showToastNotification({
@@ -159,7 +156,7 @@ export async function updateExistingTemplate(templateId, templateData) {
  */
 export async function deleteExistingTemplate(templateId) {
   try {
-    const response = await deleteTemplate(templateId);
+    const response = await services.api.deleteTemplate(templateId);
     
     if (response.success) {
       showToastNotification({
@@ -421,7 +418,7 @@ export function showCreateTemplateDialog(initialContent = '') {
     }
     
     try {
-      await createTemplate({
+      await services.api.createTemplate({
         name,
         description: description || undefined,
         content

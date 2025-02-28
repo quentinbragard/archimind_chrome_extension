@@ -2,12 +2,12 @@ import { getUserId } from '../utils/auth.js';
 import { startUrlChangeListener } from './urlManager.js';
 import { initializeChatHistory } from '../chat/chatHistoryManager.js';
 import { startMessageObserver } from '../chat/turnObserver.js';
-import { injectStatsPanel } from '../ui/statsPanel.js';
-import { injectMainButton } from '../ui/mainButton.js';
+import { injectStatsPanel } from '../ui/mainStatsPanel/statsPanel.js';
+import { injectMainButton } from '../ui/mainButton/mainButton.js';
 import { startStatsUpdates } from '../utils/statsManager.js';
 import { PromptEnhancer } from '../features/promptEnhancer.js';
 import { initNotificationsManager } from '../features/notificationsManager.js';
-import { injectModal } from '../ui/modalManager.js';
+import { injectModal } from '../ui/mainModal/modalManager.js';
 
 // Global state
 let isInitialized = false;

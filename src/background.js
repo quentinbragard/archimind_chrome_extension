@@ -1,6 +1,6 @@
 // 🔹 Open welcome page when the extension is installed
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.tabs.create({ url: 'welcome.html' });
+    chrome.tabs.create({ url: 'src/welcome.html' });
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

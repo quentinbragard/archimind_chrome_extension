@@ -6,13 +6,16 @@
   <title>Archimind Settings</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* Base styles */
+    /* Import shared styles */
+    @import url('styles/shared.css');
+    
+    /* Specific popup styles */
     body {
-      font-family: 'Roboto', Arial, sans-serif;
+      font-family: var(--font-primary);
       margin: 0;
       padding: 0;
-      background-color: #E1EBEF;
-      color: #334854;
+      background-color: var(--color-background);
+      color: var(--color-text);
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -21,9 +24,9 @@
 
     /* Card container */
     .popup-card {
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(51, 72, 84, 0.1);
+      background-color: var(--color-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
       padding: 2rem;
       width: 320px;
       text-align: center;
@@ -31,48 +34,47 @@
     }
 
     .popup-title {
-      font-family: 'Poppins', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.8rem;
-      color: #4B7086;
+      color: var(--color-primary-light);
       margin-bottom: 1rem;
     }
 
     .popup-subtitle {
       font-size: 1rem;
-      color: #607D8B;
+      color: var(--color-text-secondary);
       margin-bottom: 1.5rem;
     }
 
-    .input-field {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+    /* Login section styles */
+    #login-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .login-button {
       width: 100%;
-      background-color: #7B9EB3;
+      background-color: var(--color-secondary);
       color: white;
       padding: 10px;
       border: none;
-      border-radius: 5px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       font-size: 1rem;
       transition: all 0.3s ease;
     }
 
     .login-button:hover {
-      background-color: #4A6F85;
+      background-color: var(--color-primary-light);
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(75, 111, 133, 0.3);
+      box-shadow: var(--shadow-md);
     }
 
     .create-account {
       display: block;
       margin-top: 1rem;
-      color: #4A6F85;
+      color: var(--color-primary-light);
       text-decoration: none;
       font-size: 0.9rem;
     }
@@ -81,20 +83,59 @@
       text-decoration: underline;
     }
 
-    .hidden {
-      display: none;
+    /* Logged in section */
+    #logged-in-section {
+      text-align: left;
+    }
+
+    #logged-in-section p {
+      color: var(--color-text);
+      margin-bottom: 1.5rem;
+    }
+
+    #logged-in-section strong {
+      color: var(--color-primary);
+    }
+
+    #logged-in-section h3 {
+      color: var(--color-text);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    #prompt-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #prompt-list li {
+      padding: 8px 12px;
+      margin-bottom: 5px;
+      background-color: rgba(28, 77, 235, 0.05);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--color-text);
+    }
+
+    #prompt-list li:hover {
+      background-color: rgba(28, 77, 235, 0.1);
+      transform: translateX(3px);
+    }
+
+    #message {
+      margin-top: 1rem;
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
     }
 
     /* Fade-in animation */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     .popup-card {
       animation: fadeIn 0.8s ease-out;
     }
-
   </style>
 </head>
 <body>
@@ -129,6 +170,6 @@
 
   </div>
 
-  <script src="popup.js"></script>
+  <script src="./popup.js"></script>
 </body>
 </html>

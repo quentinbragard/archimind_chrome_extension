@@ -1,4 +1,5 @@
-import { saveChatToBackend } from '../utils/api.js';
+// src/chat/chatHistoryManager.js
+import { services } from '../services/ServiceLocator.js';
 import { getChatTitleFromSidebar } from './chatHelpers.js';
 
 // Chat history state
@@ -44,11 +45,24 @@ export function handleChatIdChange(chatId) {
       savedChatName: placeholder,
       providerChatId: chatId,
     };
-    saveChatToBackend({chatId, chatTitle: placeholder, providerName: 'chatGPT'});
+    
+    // Using the ApiService instead of direct function
+    services.api.saveChatToBackend({
+      chatId, 
+      chatTitle: placeholder, 
+      providerName: 'chatGPT'
+    });
   } else {
     // We found a real title
     console.log('💬 Saving chat with title:', sidebarTitle);
-    saveChatToBackend({chatId, chatTitle: sidebarTitle, providerName: 'chatGPT'});
+    
+    // Using the ApiService instead of direct function
+    services.api.saveChatToBackend({
+      chatId, 
+      chatTitle: sidebarTitle, 
+      providerName: 'chatGPT'
+    });
+    
     chatHistoryData = {
       savedChatName: sidebarTitle,
       providerChatId: chatId,
@@ -79,7 +93,12 @@ function startTitleCheckInterval(chatId) {
     // Once we find a real title, update the record
     console.log('📝 Found updated chat title:', possibleTitle);
     
-    saveChatToBackend({chatId, chatTitle: possibleTitle, providerName: 'chatGPT'});
+    services.api.saveChatToBackend({
+      chatId, 
+      chatTitle: possibleTitle, 
+      providerName: 'chatGPT'
+    });
+    
     chatHistoryData.savedChatName = possibleTitle;
     
     clearInterval(titleCheckInterval);
@@ -96,7 +115,7 @@ export function updateChatTitle(newTitle) {
   
   console.log('📝 Manually updating chat title to:', newTitle);
   
-  saveChatToBackend({
+  services.api.saveChatToBackend({
     chatId: chatHistoryData.providerChatId, 
     chatTitle: newTitle, 
     providerName: 'chatGPT'
@@ -130,7 +149,11 @@ export function createFallbackHistory() {
   const chatId = `no_history_${Date.now()}`;
   const chatTitle = `no_title_${Date.now()}`;
   
-  saveChatToBackend({chatId, chatTitle, providerName: 'chatGPT'});
+  services.api.saveChatToBackend({
+    chatId, 
+    chatTitle, 
+    providerName: 'chatGPT'
+  });
   
   return { 
     savedChatName: chatTitle, 

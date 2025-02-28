@@ -1,5 +1,5 @@
-import { useTemplate } from '../features/templateManager.js';
-import { apiRequest } from '../utils/api.js';
+import { useTemplate } from '../../features/templateManager.js';
+import { apiRequest } from '../../utils/api.js';
 import { showToastNotification } from './notificationsUI.js';
 
 // Template state

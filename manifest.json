@@ -13,7 +13,7 @@
     "scopes": ["openid", "email", "profile"]
   },
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "src/background.js"
     },
     "content_scripts": [
       {
@@ -24,7 +24,7 @@
       }
     ],
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "src/popup.html",
         "default_icon": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
@@ -32,13 +32,11 @@
         }
     },
     "web_accessible_resources": [
-      {
-        "resources": [
-          "welcome.html",
-          "utils",
-          "chatGPT"
-        ],
-        "matches": ["<all_urls>"]
-      }
-    ]
+  {
+    "resources": [
+      "src"
+    ],
+    "matches": ["<all_urls>"]
+    }
+  ]
 }
