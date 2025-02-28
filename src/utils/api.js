@@ -197,20 +197,6 @@ export async function fetchUserStats() {
     }
 }
 
-/**
- * Get user's prompt templates
- * @returns {Promise<Array>} Templates array
- */
-export async function fetchPromptTemplates() {
-    try {
-        const response = await apiRequest('/stats/templates');
-        return response.templates || [];
-    } catch (error) {
-        console.error('Error fetching templates:', error);
-        return [];
-    }
-}
-
 // Prompt enhancement API functions...
 
 /**
@@ -231,7 +217,7 @@ export async function enhancePrompt(promptData) {
  * @returns {Promise<Object>} Saved template
  */
 export async function saveTemplate(templateData) {
-    const response = await apiRequest('/prompt-generator/save-template', {
+    const response = await apiRequest('/prompt-templates/save-template', {
         method: 'POST',
         body: JSON.stringify({
             content: templateData.content,
@@ -248,7 +234,77 @@ export async function saveTemplate(templateData) {
  * @returns {Promise<Object>} Response data
  */
 export async function trackTemplateUsage(templateId) {
-    return apiRequest(`/prompt-generator/use-template/${templateId}`, {
+    return apiRequest(`/prompt-templates/use-template/${templateId}`, {
         method: 'POST'
+    });
+}
+
+
+/**
+ * Get user's prompt templates organized by folders
+ * @returns {Promise<Object>} Response with templates and folder structure
+ */
+export async function fetchUserTemplates() {
+    try {
+        const response = await apiRequest('/prompt-templates/templates');
+        return response || { templates: [], folders: [], templates_by_folder: {} };
+    } catch (error) {
+        console.error('Error fetching user templates:', error);
+        return { templates: [], folders: [], templates_by_folder: {} };
+    }
+}
+
+/**
+ * Get official prompt templates
+ * @returns {Promise<Object>} Response with official templates and folder structure
+ */
+export async function fetchOfficialTemplates() {
+    try {
+        const response = await apiRequest('/prompt-templates/official-templates');
+        return response || { templates: [], folders: [] };
+    } catch (error) {
+        console.error('Error fetching official templates:', error);
+        return { templates: [], folders: [] };
+    }
+}
+
+/**
+ * Create a new template
+ * @param {Object} templateData - Template data
+ * @param {string} templateData.name - Template name
+ * @param {string} templateData.content - Template content
+ * @param {string} templateData.folder - Template folder (optional)
+ * @param {string} templateData.description - Template description (optional)
+ * @param {number} templateData.based_on_official_id - ID of official template to base on (optional)
+ * @returns {Promise<Object>} Response with created template
+ */
+export async function createTemplate(templateData) {
+    return apiRequest('/prompt-templates/template', {
+        method: 'POST',
+        body: JSON.stringify(templateData)
+    });
+}
+
+/**
+ * Update an existing template
+ * @param {string} templateId - Template ID
+ * @param {Object} templateData - Template data to update
+ * @returns {Promise<Object>} Response with updated template
+ */
+export async function updateTemplate(templateId, templateData) {
+    return apiRequest(`/prompt-templates/template/${templateId}`, {
+        method: 'PUT',
+        body: JSON.stringify(templateData)
+    });
+}
+
+/**
+ * Delete a template
+ * @param {string} templateId - Template ID
+ * @returns {Promise<Object>} Response
+ */
+export async function deleteTemplate(templateId) {
+    return apiRequest(`/prompt-templates/template/${templateId}`, {
+        method: 'DELETE'
     });
 }

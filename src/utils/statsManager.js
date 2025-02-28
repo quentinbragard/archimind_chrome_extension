@@ -143,34 +143,6 @@ function animateCounterUpdate(element, startVal, endVal) {
     requestAnimationFrame(animate);
 }
 
-/**
- * Fetches user's prompt templates
- * @returns {Promise<Array>} Array of template objects
- */
-export async function fetchPromptTemplates() {
-    try {
-        const token = await getAuthToken();
-        
-        const response = await fetch('http://127.0.0.1:8000/stats/templates', {
-            method: 'GET',
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.templates || [];
-    } catch (error) {
-        console.error("❌ Error fetching templates:", error);
-        return [];
-    }
-}
-
 
 // Schedule regular updates
 let updateInterval = null;

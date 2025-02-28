@@ -1,5 +1,8 @@
-import { saveTemplate, trackTemplateUsage } from '../utils/api.js';
-import { closeModal } from '../ui/modalManager.js';
+import { 
+  createTemplate, updateTemplate, deleteTemplate, 
+  fetchUserTemplates, fetchOfficialTemplates, saveTemplate, trackTemplateUsage 
+} from '../utils/api.js';
+import { closeModal, refreshModalData } from '../ui/modalManager.js';
 import { showToastNotification } from '../ui/notificationsUI.js';
 
 /**
@@ -45,53 +48,170 @@ export function useTemplate(template) {
   // Show success notification
   showToastNotification({
     title: 'Template Applied',
-    message: `"${template.name}" has been inserted into the input area.`,
+    message: `"${template.name || 'Template'}" has been inserted into the input area.`,
     type: 'success'
   });
 }
 
 /**
- * Saves a new template
- * @param {Object} templateData - Template data
- * @param {string} templateData.name - Template name (will be stored in the content field)
- * @param {string} templateData.content - Template content
- * @param {string} templateData.folder - Template folder (optional)
- * @returns {Promise<Object>} Saved template
+ * Get all user templates with folder structure
+ * @returns {Promise<Object>} User templates and folder structure
  */
-export async function createTemplate(templateData) {
-  if (!templateData.content) {
-    throw new Error('Template content is required');
-  }
-  
+export async function getUserTemplates() {
   try {
-    // Format the template data to match the database structure
-    const formattedData = {
-      content: templateData.content,
-      folder: templateData.folder || null,
-      // We don't need to send id, created_at or user_id
-      // as those will be handled by the backend
-    };
-    
-    const savedTemplate = await saveTemplate(formattedData);
-    
-    // Show success notification
-    showToastNotification({
-      title: 'Template Saved',
-      message: `Your template has been saved successfully.`,
-      type: 'success'
-    });
-    
-    return savedTemplate;
+    return await fetchUserTemplates();
   } catch (error) {
-    // Show error notification
+    console.error('Error getting user templates:', error);
+    return { templates: [], folders: [], templates_by_folder: {} };
+  }
+}
+
+/**
+ * Get all official templates
+ * @returns {Promise<Object>} Official templates
+ */
+export async function getOfficialTemplates() {
+  try {
+    return await fetchOfficialTemplates();
+  } catch (error) {
+    console.error('Error getting official templates:', error);
+    return { templates: [], categories: {} };
+  }
+}
+
+/**
+ * Create a new template
+ * @param {Object} templateData - Template data
+ * @returns {Promise<Object>} Created template
+ */
+export async function createNewTemplate(templateData) {
+  try {
+    const response = await createTemplate(templateData);
+    
+    if (response.success) {
+      showToastNotification({
+        title: 'Template Created',
+        message: 'Your template has been created successfully.',
+        type: 'success'
+      });
+      
+      // Refresh templates in modal
+      refreshModalData();
+      
+      return response.template;
+    } else {
+      throw new Error('Failed to create template');
+    }
+  } catch (error) {
+    console.error('Error creating template:', error);
+    
     showToastNotification({
-      title: 'Error Saving Template',
-      message: error.message || 'An unexpected error occurred',
+      title: 'Error',
+      message: 'Failed to create template. Please try again.',
       type: 'error'
     });
     
     throw error;
   }
+}
+
+/**
+ * Update an existing template
+ * @param {string} templateId - Template ID
+ * @param {Object} templateData - Template data
+ * @returns {Promise<Object>} Updated template
+ */
+export async function updateExistingTemplate(templateId, templateData) {
+  try {
+    const response = await updateTemplate(templateId, templateData);
+    
+    if (response.success) {
+      showToastNotification({
+        title: 'Template Updated',
+        message: 'Your template has been updated successfully.',
+        type: 'success'
+      });
+      
+      // Refresh templates in modal
+      refreshModalData();
+      
+      return response.template;
+    } else {
+      throw new Error('Failed to update template');
+    }
+  } catch (error) {
+    console.error('Error updating template:', error);
+    
+    showToastNotification({
+      title: 'Error',
+      message: 'Failed to update template. Please try again.',
+      type: 'error'
+    });
+    
+    throw error;
+  }
+}
+
+/**
+ * Delete a template
+ * @param {string} templateId - Template ID
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteExistingTemplate(templateId) {
+  try {
+    const response = await deleteTemplate(templateId);
+    
+    if (response.success) {
+      showToastNotification({
+        title: 'Template Deleted',
+        message: 'Your template has been deleted successfully.',
+        type: 'success'
+      });
+      
+      // Refresh templates in modal
+      refreshModalData();
+      
+      return true;
+    } else {
+      throw new Error('Failed to delete template');
+    }
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    
+    showToastNotification({
+      title: 'Error',
+      message: 'Failed to delete template. Please try again.',
+      type: 'error'
+    });
+    
+    return false;
+  }
+}
+
+/**
+ * Extract folder hierarchy from a folder path
+ * @param {string} folderPath - Folder path (e.g., "marketing/campaigns/email")
+ * @returns {Array} Array of folder objects with name and path
+ */
+export function extractFolderHierarchy(folderPath) {
+  if (!folderPath) return [];
+  
+  const parts = folderPath.split('/');
+  const folders = [];
+  let currentPath = '';
+  
+  for (let i = 0; i < parts.length; i++) {
+    if (i > 0) currentPath += '/';
+    currentPath += parts[i];
+    
+    folders.push({
+      name: parts[i],
+      path: currentPath,
+      level: i
+    });
+  }
+  
+  return folders;
 }
 
 /**
